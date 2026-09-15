@@ -1,0 +1,2347 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>SVG 高精細画像変換ツール</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+html,body{
+    margin:0;
+    min-height:100%;
+}
+
+body{
+    font-family:
+        "Segoe UI",
+        "Yu Gothic",
+        "Hiragino Kaku Gothic ProN",
+        sans-serif;
+    background:#eef1f5;
+    color:#20252b;
+}
+
+header{
+    background:#1e242b;
+    color:white;
+    padding:22px 28px;
+}
+
+header h1{
+    margin:0;
+    font-size:25px;
+}
+
+header p{
+    margin:7px 0 0;
+    color:#cbd2da;
+}
+
+.container{
+    max-width:1500px;
+    margin:auto;
+    padding:25px 18px 50px;
+}
+
+.card{
+    background:white;
+    border-radius:14px;
+    padding:22px;
+    margin-bottom:20px;
+    box-shadow:0 5px 22px rgba(0,0,0,.07);
+}
+
+.card h2{
+    margin-top:0;
+}
+
+.dropzone{
+    min-height:190px;
+    border:3px dashed #aeb7c2;
+    border-radius:15px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    cursor:pointer;
+    background:#fafbfc;
+    transition:.2s;
+}
+
+.dropzone:hover,
+.dropzone.dragover{
+    border-color:#2563eb;
+    background:#eff6ff;
+}
+
+.drop-icon{
+    font-size:50px;
+}
+
+.drop-title{
+    font-size:20px;
+    font-weight:bold;
+    margin-top:8px;
+}
+
+.drop-sub{
+    margin-top:6px;
+    color:#68727d;
+}
+
+input[type=file]{
+    display:none;
+}
+
+.info-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:12px;
+}
+
+.info{
+    background:#f4f6f8;
+    border-radius:10px;
+    padding:13px;
+}
+
+.info-label{
+    font-size:12px;
+    color:#68727d;
+}
+
+.info-value{
+    font-size:16px;
+    font-weight:bold;
+    margin-top:5px;
+    word-break:break-all;
+}
+
+.settings-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+    gap:16px;
+}
+
+.setting{
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+}
+
+.setting.full{
+    grid-column:1/-1;
+}
+
+.setting label{
+    font-weight:bold;
+    font-size:14px;
+}
+
+input[type=number],
+input[type=text],
+select{
+    width:100%;
+    padding:11px;
+    border:1px solid #ccd2da;
+    border-radius:8px;
+    font-size:15px;
+    background:white;
+}
+
+input[type=number]:focus,
+input[type=text]:focus,
+select:focus{
+    outline:2px solid #bfdbfe;
+    border-color:#2563eb;
+}
+
+input[type=color]{
+    width:100%;
+    height:44px;
+    border:1px solid #ccd2da;
+    border-radius:8px;
+    padding:3px;
+}
+
+input[type=checkbox]{
+    width:18px;
+    height:18px;
+}
+
+.check{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    margin-top:8px;
+}
+
+.range-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.range-row input{
+    flex:1;
+}
+
+.range-value{
+    min-width:55px;
+    text-align:right;
+    font-weight:bold;
+}
+
+input[type=range]{
+    accent-color:#2563eb;
+}
+
+.separator{
+    height:1px;
+    background:#e2e6ea;
+    margin:22px 0;
+}
+
+.resolution-box{
+    background:#f7f9fb;
+    border:1px solid #dde2e8;
+    border-radius:11px;
+    padding:16px;
+    margin-top:20px;
+}
+
+.resolution-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:12px;
+}
+
+.resolution-item{
+    background:white;
+    border-radius:9px;
+    padding:12px;
+    border:1px solid #e0e4e9;
+}
+
+.resolution-item .label{
+    font-size:12px;
+    color:#6b7280;
+}
+
+.resolution-item .value{
+    margin-top:4px;
+    font-weight:bold;
+    font-size:16px;
+}
+
+.buttons{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:20px;
+}
+
+button{
+    border:none;
+    border-radius:9px;
+    padding:12px 19px;
+    font-size:15px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:.15s;
+}
+
+button:hover{
+    transform:translateY(-1px);
+}
+
+.primary{
+    background:#2563eb;
+    color:white;
+}
+
+.primary:hover{
+    background:#1d4ed8;
+}
+
+.secondary{
+    background:#e8edf2;
+    color:#20252b;
+}
+
+.danger{
+    background:#dc2626;
+    color:white;
+}
+
+button:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+    transform:none;
+}
+
+.preview-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+
+.preview-title{
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+.preview{
+    min-height:420px;
+    border:1px solid #d7dce2;
+    border-radius:12px;
+    overflow:auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+
+    background:
+        linear-gradient(45deg,#e9e9e9 25%,transparent 25%),
+        linear-gradient(-45deg,#e9e9e9 25%,transparent 25%),
+        linear-gradient(45deg,transparent 75%,#e9e9e9 75%),
+        linear-gradient(-45deg,transparent 75%,#e9e9e9 75%);
+
+    background-size:24px 24px;
+    background-position:
+        0 0,
+        0 12px,
+        12px -12px,
+        -12px 0;
+}
+
+.preview img,
+.preview canvas{
+    max-width:100%;
+    max-height:650px;
+    object-fit:contain;
+    box-shadow:0 3px 15px rgba(0,0,0,.15);
+}
+
+.status{
+    display:none;
+    margin-top:15px;
+    padding:13px 15px;
+    border-radius:9px;
+}
+
+.status.show{
+    display:block;
+}
+
+.success{
+    background:#ecfdf5;
+    color:#047857;
+}
+
+.error{
+    background:#fef2f2;
+    color:#991b1b;
+}
+
+.warning{
+    background:#fff7ed;
+    color:#9a3412;
+    padding:14px;
+    border-radius:9px;
+    margin-top:15px;
+}
+
+.hidden{
+    display:none!important;
+}
+
+.small{
+    font-size:12px;
+    color:#68727d;
+}
+
+#customDpiWrap{
+    display:none;
+}
+
+@media(max-width:850px){
+
+    .preview-grid{
+        grid-template-columns:1fr;
+    }
+
+    .preview{
+        min-height:300px;
+    }
+
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>SVG → 高精細画像変換ツール</h1>
+    <p>解像度・DPI・サイズ・品質を細かく指定してPNG / JPG / WebPへ変換</p>
+</header>
+
+<div class="container">
+
+    <!-- ファイル選択 -->
+    <div class="card">
+
+        <div class="dropzone" id="dropzone">
+
+            <div>
+
+                <div class="drop-icon">🖼️</div>
+
+                <div class="drop-title">
+                    SVGファイルをここにドロップ
+                </div>
+
+                <div class="drop-sub">
+                    クリックしてファイルを選択することもできます
+                </div>
+
+            </div>
+
+        </div>
+
+        <input
+            type="file"
+            id="fileInput"
+            accept=".svg,image/svg+xml"
+        >
+
+        <div id="status" class="status"></div>
+
+    </div>
+
+
+    <!-- メイン -->
+    <div id="mainArea" class="hidden">
+
+
+        <!-- SVG情報 -->
+        <div class="card">
+
+            <h2>📄 SVG情報</h2>
+
+            <div class="info-grid">
+
+                <div class="info">
+                    <div class="info-label">ファイル名</div>
+                    <div class="info-value" id="fileName">---</div>
+                </div>
+
+                <div class="info">
+                    <div class="info-label">SVGサイズ</div>
+                    <div class="info-value" id="svgSize">---</div>
+                </div>
+
+                <div class="info">
+                    <div class="info-label">viewBox</div>
+                    <div class="info-value" id="viewBox">---</div>
+                </div>
+
+                <div class="info">
+                    <div class="info-label">アスペクト比</div>
+                    <div class="info-value" id="aspect">---</div>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- 出力設定 -->
+        <div class="card">
+
+            <h2>⚙️ 出力設定</h2>
+
+            <div class="settings-grid">
+
+
+                <!-- フォーマット -->
+                <div class="setting">
+
+                    <label>出力形式</label>
+
+                    <select id="format">
+
+                        <option value="png">
+                            PNG（可逆・透明対応）
+                        </option>
+
+                        <option value="jpeg">
+                            JPG（高品質）
+                        </option>
+
+                        <option value="webp">
+                            WebP（高品質）
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- プリセット -->
+                <div class="setting">
+
+                    <label>解像度プリセット</label>
+
+                    <select id="preset">
+
+                        <option value="custom">
+                            カスタム
+                        </option>
+
+                        <option value="hd">
+                            HD 1280×720
+                        </option>
+
+                        <option value="fhd">
+                            Full HD 1920×1080
+                        </option>
+
+                        <option value="qhd">
+                            QHD 2560×1440
+                        </option>
+
+                        <option value="4k">
+                            4K 3840×2160
+                        </option>
+
+                        <option value="5k">
+                            5K 5120×2880
+                        </option>
+
+                        <option value="8k">
+                            8K 7680×4320
+                        </option>
+
+                        <option value="a4_300">
+                            A4 300dpi
+                        </option>
+
+                        <option value="a4_600">
+                            A4 600dpi
+                        </option>
+
+                        <option value="a3_300">
+                            A3 300dpi
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- 倍率 -->
+                <div class="setting">
+
+                    <label>SVG倍率</label>
+
+                    <select id="scale">
+
+                        <option value="1">1×</option>
+                        <option value="2">2×</option>
+                        <option value="3">3×</option>
+                        <option value="4" selected>4×</option>
+                        <option value="5">5×</option>
+                        <option value="6">6×</option>
+                        <option value="8">8×</option>
+                        <option value="10">10×</option>
+                        <option value="12">12×</option>
+                        <option value="16">16×</option>
+                        <option value="20">20×</option>
+                        <option value="custom">カスタム</option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- 幅 -->
+                <div class="setting">
+
+                    <label>出力幅（px）</label>
+
+                    <input
+                        type="number"
+                        id="width"
+                        min="1"
+                        max="50000"
+                        value="1920"
+                    >
+
+                </div>
+
+
+                <!-- 高さ -->
+                <div class="setting">
+
+                    <label>出力高さ（px）</label>
+
+                    <input
+                        type="number"
+                        id="height"
+                        min="1"
+                        max="50000"
+                        value="1080"
+                    >
+
+                </div>
+
+
+                <!-- DPI -->
+                <div class="setting">
+
+                    <label>DPI / 印刷解像度</label>
+
+                    <select id="dpi">
+
+                        <option value="72">72 DPI</option>
+                        <option value="96" selected>96 DPI（標準）</option>
+                        <option value="150">150 DPI</option>
+                        <option value="300">300 DPI</option>
+                        <option value="600">600 DPI</option>
+                        <option value="1200">1200 DPI</option>
+                        <option value="custom">カスタム</option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- カスタムDPI -->
+                <div class="setting" id="customDpiWrap">
+
+                    <label>カスタムDPI</label>
+
+                    <input
+                        type="number"
+                        id="customDpi"
+                        min="1"
+                        max="10000"
+                        value="300"
+                    >
+
+                </div>
+
+
+                <!-- 背景 -->
+                <div class="setting">
+
+                    <label>背景色</label>
+
+                    <input
+                        type="color"
+                        id="bgColor"
+                        value="#ffffff"
+                    >
+
+                </div>
+
+
+                <!-- 背景透明 -->
+                <div class="setting">
+
+                    <label>背景設定</label>
+
+                    <div class="check">
+
+                        <input
+                            type="checkbox"
+                            id="transparent"
+                            checked
+                        >
+
+                        <span>
+                            透明背景
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- 品質 -->
+                <div class="setting full">
+
+                    <label>
+                        JPG / WebP 品質
+                    </label>
+
+                    <div class="range-row">
+
+                        <input
+                            type="range"
+                            id="quality"
+                            min="1"
+                            max="100"
+                            value="95"
+                        >
+
+                        <span
+                            class="range-value"
+                            id="qualityValue"
+                        >
+                            95%
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ファイル名 -->
+                <div class="setting full">
+
+                    <label>
+                        保存ファイル名
+                    </label>
+
+                    <input
+                        type="text"
+                        id="fileNameInput"
+                        value="converted"
+                    >
+
+                    <div class="small">
+                        拡張子は自動的に追加されます。
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="separator"></div>
+
+
+            <!-- 縦横比 -->
+            <div class="check">
+
+                <input
+                    type="checkbox"
+                    id="lockRatio"
+                    checked
+                >
+
+                <label for="lockRatio">
+                    幅・高さの縦横比を固定
+                </label>
+
+            </div>
+
+
+            <!-- 解像度情報 -->
+            <div class="resolution-box">
+
+                <h3>📐 出力解像度</h3>
+
+                <div class="resolution-grid">
+
+                    <div class="resolution-item">
+
+                        <div class="label">
+                            ピクセル数
+                        </div>
+
+                        <div
+                            class="value"
+                            id="pixelCount"
+                        >
+                            ---
+                        </div>
+
+                    </div>
+
+
+                    <div class="resolution-item">
+
+                        <div class="label">
+                            総画素数
+                        </div>
+
+                        <div
+                            class="value"
+                            id="megaPixels"
+                        >
+                            ---
+                        </div>
+
+                    </div>
+
+
+                    <div class="resolution-item">
+
+                        <div class="label">
+                            DPI
+                        </div>
+
+                        <div
+                            class="value"
+                            id="dpiDisplay"
+                        >
+                            ---
+                        </div>
+
+                    </div>
+
+
+                    <div class="resolution-item">
+
+                        <div class="label">
+                            印刷サイズ
+                        </div>
+
+                        <div
+                            class="value"
+                            id="printSize"
+                        >
+                            ---
+                        </div>
+
+                    </div>
+
+
+                    <div class="resolution-item">
+
+                        <div class="label">
+                            推定メモリ使用量
+                        </div>
+
+                        <div
+                            class="value"
+                            id="memoryEstimate"
+                        >
+                            ---
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="warning">
+
+                ⚠️ 高解像度画像は大量のメモリを使用します。
+                特に8K以上や1200dpiなどでは、PCの性能によって
+                変換できない場合があります。
+
+            </div>
+
+
+            <div class="buttons">
+
+                <button
+                    class="primary"
+                    id="convertBtn"
+                >
+                    🔄 高画質で変換
+                </button>
+
+                <button
+                    class="secondary"
+                    id="resetBtn"
+                >
+                    ↩ リセット
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- プレビュー -->
+        <div class="card">
+
+            <h2>👁️ プレビュー</h2>
+
+            <div class="preview-grid">
+
+                <div>
+
+                    <div class="preview-title">
+                        元SVG
+                    </div>
+
+                    <div class="preview">
+
+                        <img
+                            id="svgPreview"
+                            alt="SVG Preview"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <div class="preview-title">
+                        変換後
+                    </div>
+
+                    <div class="preview">
+
+                        <canvas
+                            id="canvas"
+                        ></canvas>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="buttons">
+
+                <button
+                    class="primary"
+                    id="downloadBtn"
+                    disabled
+                >
+                    💾 画像を保存
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================================
+   DOM
+========================================= */
+
+const dropzone =
+    document.getElementById("dropzone");
+
+const fileInput =
+    document.getElementById("fileInput");
+
+const mainArea =
+    document.getElementById("mainArea");
+
+const status =
+    document.getElementById("status");
+
+const format =
+    document.getElementById("format");
+
+const preset =
+    document.getElementById("preset");
+
+const scale =
+    document.getElementById("scale");
+
+const widthInput =
+    document.getElementById("width");
+
+const heightInput =
+    document.getElementById("height");
+
+const dpi =
+    document.getElementById("dpi");
+
+const customDpiWrap =
+    document.getElementById("customDpiWrap");
+
+const customDpi =
+    document.getElementById("customDpi");
+
+const bgColor =
+    document.getElementById("bgColor");
+
+const transparent =
+    document.getElementById("transparent");
+
+const quality =
+    document.getElementById("quality");
+
+const qualityValue =
+    document.getElementById("qualityValue");
+
+const lockRatio =
+    document.getElementById("lockRatio");
+
+const convertBtn =
+    document.getElementById("convertBtn");
+
+const downloadBtn =
+    document.getElementById("downloadBtn");
+
+const resetBtn =
+    document.getElementById("resetBtn");
+
+const canvas =
+    document.getElementById("canvas");
+
+const svgPreview =
+    document.getElementById("svgPreview");
+
+const fileNameDisplay =
+    document.getElementById("fileName");
+
+const svgSizeDisplay =
+    document.getElementById("svgSize");
+
+const viewBoxDisplay =
+    document.getElementById("viewBox");
+
+const aspectDisplay =
+    document.getElementById("aspect");
+
+const fileNameInput =
+    document.getElementById("fileNameInput");
+
+const pixelCount =
+    document.getElementById("pixelCount");
+
+const megaPixels =
+    document.getElementById("megaPixels");
+
+const dpiDisplay =
+    document.getElementById("dpiDisplay");
+
+const printSize =
+    document.getElementById("printSize");
+
+const memoryEstimate =
+    document.getElementById("memoryEstimate");
+
+
+/* =========================================
+   状態
+========================================= */
+
+let currentSVG = "";
+
+let currentFile = null;
+
+let svgURL = null;
+
+let convertedBlob = null;
+
+let originalWidth = 1000;
+
+let originalHeight = 1000;
+
+let ratio = 1;
+
+
+/* =========================================
+   ファイル選択
+========================================= */
+
+dropzone.addEventListener(
+    "click",
+    () => fileInput.click()
+);
+
+
+fileInput.addEventListener(
+    "change",
+    e => {
+
+        if(e.target.files.length){
+
+            loadSVG(
+                e.target.files[0]
+            );
+
+        }
+
+    }
+);
+
+
+/* ドラッグ */
+
+dropzone.addEventListener(
+    "dragover",
+    e => {
+
+        e.preventDefault();
+
+        dropzone.classList.add(
+            "dragover"
+        );
+
+    }
+);
+
+
+dropzone.addEventListener(
+    "dragleave",
+    () => {
+
+        dropzone.classList.remove(
+            "dragover"
+        );
+
+    }
+);
+
+
+dropzone.addEventListener(
+    "drop",
+    e => {
+
+        e.preventDefault();
+
+        dropzone.classList.remove(
+            "dragover"
+        );
+
+        const file =
+            e.dataTransfer.files[0];
+
+        if(file){
+
+            loadSVG(file);
+
+        }
+
+    }
+);
+
+
+/* =========================================
+   SVG読み込み
+========================================= */
+
+async function loadSVG(file){
+
+    if(
+        !file.name
+            .toLowerCase()
+            .endsWith(".svg")
+    ){
+
+        showStatus(
+            "SVGファイルを選択してください。",
+            true
+        );
+
+        return;
+
+    }
+
+
+    currentFile = file;
+
+    currentSVG =
+        await file.text();
+
+
+    fileNameDisplay.textContent =
+        file.name;
+
+
+    fileNameInput.value =
+        file.name
+            .replace(/\.svg$/i,"");
+
+
+    const parser =
+        new DOMParser();
+
+
+    const doc =
+        parser.parseFromString(
+            currentSVG,
+            "image/svg+xml"
+        );
+
+
+    const svg =
+        doc.documentElement;
+
+
+    if(
+        svg.nodeName.toLowerCase()
+        !== "svg"
+    ){
+
+        showStatus(
+            "SVGとして読み込めませんでした。",
+            true
+        );
+
+        return;
+
+    }
+
+
+    let w =
+        parseFloat(
+            svg.getAttribute("width")
+        );
+
+    let h =
+        parseFloat(
+            svg.getAttribute("height")
+        );
+
+
+    const vb =
+        svg.getAttribute(
+            "viewBox"
+        );
+
+
+    if(vb){
+
+        const values =
+            vb
+                .trim()
+                .split(/[\s,]+/)
+                .map(Number);
+
+
+        if(values.length === 4){
+
+            viewBoxDisplay.textContent =
+                values.join(" ");
+
+
+            if(
+                !w ||
+                !Number.isFinite(w)
+            ){
+
+                w = values[2];
+
+            }
+
+
+            if(
+                !h ||
+                !Number.isFinite(h)
+            ){
+
+                h = values[3];
+
+            }
+
+        }
+
+    }else{
+
+        viewBoxDisplay.textContent =
+            "なし";
+
+    }
+
+
+    if(
+        !w ||
+        !Number.isFinite(w) ||
+        w <= 0
+    ){
+
+        w = 1000;
+
+    }
+
+
+    if(
+        !h ||
+        !Number.isFinite(h) ||
+        h <= 0
+    ){
+
+        h = 1000;
+
+    }
+
+
+    originalWidth = w;
+
+    originalHeight = h;
+
+    ratio = w / h;
+
+
+    svgSizeDisplay.textContent =
+        `${Math.round(w)} × ${Math.round(h)}`;
+
+
+    aspectDisplay.textContent =
+        ratio.toFixed(5);
+
+
+    /* プレビュー */
+
+    if(svgURL){
+
+        URL.revokeObjectURL(
+            svgURL
+        );
+
+    }
+
+
+    const blob =
+        new Blob(
+            [currentSVG],
+            {
+                type:
+                    "image/svg+xml"
+            }
+        );
+
+
+    svgURL =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    svgPreview.src =
+        svgURL;
+
+
+    /* 初期解像度 */
+
+    widthInput.value =
+        Math.round(
+            w * 4
+        );
+
+
+    heightInput.value =
+        Math.round(
+            h * 4
+        );
+
+
+    scale.value = "4";
+
+    preset.value = "custom";
+
+
+    mainArea.classList.remove(
+        "hidden"
+    );
+
+
+    updateResolutionInfo();
+
+
+    showStatus(
+        "SVGを読み込みました。",
+        false
+    );
+
+}
+
+
+/* =========================================
+   プリセット
+========================================= */
+
+preset.addEventListener(
+    "change",
+    () => {
+
+        const p =
+            preset.value;
+
+
+        let w = null;
+
+        let h = null;
+
+
+        if(p === "hd"){
+
+            w = 1280;
+            h = 720;
+
+        }
+
+        if(p === "fhd"){
+
+            w = 1920;
+            h = 1080;
+
+        }
+
+        if(p === "qhd"){
+
+            w = 2560;
+            h = 1440;
+
+        }
+
+        if(p === "4k"){
+
+            w = 3840;
+            h = 2160;
+
+        }
+
+        if(p === "5k"){
+
+            w = 5120;
+            h = 2880;
+
+        }
+
+        if(p === "8k"){
+
+            w = 7680;
+            h = 4320;
+
+        }
+
+
+        /* A4 */
+
+        if(p === "a4_300"){
+
+            w =
+                Math.round(
+                    8.27 * 300
+                );
+
+            h =
+                Math.round(
+                    11.69 * 300
+                );
+
+            dpi.value = "300";
+
+        }
+
+
+        if(p === "a4_600"){
+
+            w =
+                Math.round(
+                    8.27 * 600
+                );
+
+            h =
+                Math.round(
+                    11.69 * 600
+                );
+
+            dpi.value = "600";
+
+        }
+
+
+        /* A3 */
+
+        if(p === "a3_300"){
+
+            w =
+                Math.round(
+                    11.69 * 300
+                );
+
+            h =
+                Math.round(
+                    16.54 * 300
+                );
+
+            dpi.value = "300";
+
+        }
+
+
+        if(w && h){
+
+            widthInput.value =
+                w;
+
+            heightInput.value =
+                h;
+
+            scale.value =
+                "custom";
+
+        }
+
+
+        updateResolutionInfo();
+
+    }
+);
+
+
+/* =========================================
+   倍率
+========================================= */
+
+scale.addEventListener(
+    "change",
+    () => {
+
+        if(
+            scale.value ===
+            "custom"
+        ){
+
+            updateResolutionInfo();
+
+            return;
+
+        }
+
+
+        const s =
+            Number(
+                scale.value
+            );
+
+
+        widthInput.value =
+            Math.round(
+                originalWidth * s
+            );
+
+
+        heightInput.value =
+            Math.round(
+                originalHeight * s
+            );
+
+
+        preset.value =
+            "custom";
+
+
+        updateResolutionInfo();
+
+    }
+);
+
+
+/* =========================================
+   幅変更
+========================================= */
+
+widthInput.addEventListener(
+    "input",
+    () => {
+
+        if(lockRatio.checked){
+
+            const w =
+                Number(
+                    widthInput.value
+                );
+
+
+            if(w > 0){
+
+                heightInput.value =
+                    Math.max(
+                        1,
+                        Math.round(
+                            w / ratio
+                        )
+                    );
+
+            }
+
+        }
+
+
+        scale.value =
+            "custom";
+
+        preset.value =
+            "custom";
+
+
+        updateResolutionInfo();
+
+    }
+);
+
+
+/* =========================================
+   高さ変更
+========================================= */
+
+heightInput.addEventListener(
+    "input",
+    () => {
+
+        if(lockRatio.checked){
+
+            const h =
+                Number(
+                    heightInput.value
+                );
+
+
+            if(h > 0){
+
+                widthInput.value =
+                    Math.max(
+                        1,
+                        Math.round(
+                            h * ratio
+                        )
+                    );
+
+            }
+
+        }
+
+
+        scale.value =
+            "custom";
+
+        preset.value =
+            "custom";
+
+
+        updateResolutionInfo();
+
+    }
+);
+
+
+/* =========================================
+   DPI
+========================================= */
+
+dpi.addEventListener(
+    "change",
+    () => {
+
+        customDpiWrap.style.display =
+            dpi.value === "custom"
+                ? "flex"
+                : "none";
+
+
+        updateResolutionInfo();
+
+    }
+);
+
+
+customDpi.addEventListener(
+    "input",
+    updateResolutionInfo
+);
+
+
+/* =========================================
+   品質
+========================================= */
+
+quality.addEventListener(
+    "input",
+    () => {
+
+        qualityValue.textContent =
+            quality.value + "%";
+
+    }
+);
+
+
+/* =========================================
+   背景
+========================================= */
+
+format.addEventListener(
+    "change",
+    () => {
+
+        if(format.value === "jpeg"){
+
+            transparent.checked =
+                false;
+
+            transparent.disabled =
+                true;
+
+        }else{
+
+            transparent.disabled =
+                false;
+
+        }
+
+    }
+);
+
+
+/* =========================================
+   解像度情報
+========================================= */
+
+function getDPI(){
+
+    if(dpi.value === "custom"){
+
+        return Math.max(
+            1,
+            Number(
+                customDpi.value
+            ) || 300
+        );
+
+    }
+
+    return Number(
+        dpi.value
+    );
+
+}
+
+
+function updateResolutionInfo(){
+
+    const w =
+        Math.max(
+            1,
+            parseInt(
+                widthInput.value
+            ) || 1
+        );
+
+
+    const h =
+        Math.max(
+            1,
+            parseInt(
+                heightInput.value
+            ) || 1
+        );
+
+
+    const pixels =
+        w * h;
+
+
+    pixelCount.textContent =
+        `${w.toLocaleString()} × ${h.toLocaleString()}`;
+
+
+    megaPixels.textContent =
+        `${(
+            pixels / 1000000
+        ).toFixed(2)} MP`;
+
+
+    const d =
+        getDPI();
+
+
+    dpiDisplay.textContent =
+        `${d.toLocaleString()} DPI`;
+
+
+    const printW =
+        w / d;
+
+
+    const printH =
+        h / d;
+
+
+    printSize.textContent =
+        `${printW.toFixed(2)} × ${printH.toFixed(2)} inch`;
+
+
+    /*
+        Canvas RGBAなので
+        1ピクセル = 4バイト
+    */
+
+    const bytes =
+        pixels * 4;
+
+
+    memoryEstimate.textContent =
+        formatBytes(bytes);
+
+}
+
+
+function formatBytes(bytes){
+
+    if(bytes < 1024){
+
+        return bytes + " B";
+
+    }
+
+    if(bytes < 1024*1024){
+
+        return (
+            bytes / 1024
+        ).toFixed(1)
+        + " KB";
+
+    }
+
+    if(bytes < 1024*1024*1024){
+
+        return (
+            bytes /
+            (1024*1024)
+        ).toFixed(1)
+        + " MB";
+
+    }
+
+    return (
+        bytes /
+        (1024*1024*1024)
+    ).toFixed(2)
+    + " GB";
+
+}
+
+
+/* =========================================
+   変換
+========================================= */
+
+convertBtn.addEventListener(
+    "click",
+    convertSVG
+);
+
+
+async function convertSVG(){
+
+    if(!currentSVG){
+
+        showStatus(
+            "SVGファイルを先に読み込んでください。",
+            true
+        );
+
+        return;
+
+    }
+
+
+    const w =
+        Math.max(
+            1,
+            parseInt(
+                widthInput.value
+            ) || 1
+        );
+
+
+    const h =
+        Math.max(
+            1,
+            parseInt(
+                heightInput.value
+            ) || 1
+        );
+
+
+    const totalPixels =
+        w * h;
+
+
+    /*
+        Canvas上限対策
+    */
+
+    if(
+        w > 50000 ||
+        h > 50000
+    ){
+
+        showStatus(
+            "幅・高さは最大50000pxまでです。",
+            true
+        );
+
+        return;
+
+    }
+
+
+    if(
+        totalPixels >
+        150000000
+    ){
+
+        const ok =
+            confirm(
+                "非常に大きな画像です。\n\n" +
+                `${w.toLocaleString()} × ${h.toLocaleString()} px\n` +
+                `約 ${(totalPixels/1000000).toFixed(1)} MP\n\n` +
+                "大量のメモリを使用する可能性があります。\n" +
+                "変換を続行しますか？"
+            );
+
+
+        if(!ok){
+
+            return;
+
+        }
+
+    }
+
+
+    showStatus(
+        "高解像度画像を生成しています…",
+        false
+    );
+
+
+    convertBtn.disabled =
+        true;
+
+
+    try{
+
+        const img =
+            new Image();
+
+
+        const blob =
+            new Blob(
+                [currentSVG],
+                {
+                    type:
+                        "image/svg+xml;charset=utf-8"
+                }
+            );
+
+
+        const url =
+            URL.createObjectURL(
+                blob
+            );
+
+
+        await new Promise(
+            (resolve,reject) => {
+
+                img.onload =
+                    resolve;
+
+                img.onerror =
+                    reject;
+
+                img.src =
+                    url;
+
+            }
+        );
+
+
+        /*
+            Canvasサイズ
+        */
+
+        canvas.width = w;
+
+        canvas.height = h;
+
+
+        const ctx =
+            canvas.getContext(
+                "2d",
+                {
+                    alpha:true
+                }
+            );
+
+
+        ctx.clearRect(
+            0,
+            0,
+            w,
+            h
+        );
+
+
+        /*
+            JPGは透明不可
+        */
+
+        if(
+            format.value === "jpeg"
+            ||
+            !transparent.checked
+        ){
+
+            ctx.fillStyle =
+                bgColor.value;
+
+
+            ctx.fillRect(
+                0,
+                0,
+                w,
+                h
+            );
+
+        }
+
+
+        /*
+            高品質描画
+        */
+
+        ctx.imageSmoothingEnabled =
+            true;
+
+        ctx.imageSmoothingQuality =
+            "high";
+
+
+        /*
+            SVGを指定解像度へ
+        */
+
+        ctx.drawImage(
+            img,
+            0,
+            0,
+            w,
+            h
+        );
+
+
+        URL.revokeObjectURL(
+            url
+        );
+
+
+        let mime;
+
+
+        if(format.value === "jpeg"){
+
+            mime =
+                "image/jpeg";
+
+        }else if(
+            format.value === "webp"
+        ){
+
+            mime =
+                "image/webp";
+
+        }else{
+
+            mime =
+                "image/png";
+
+        }
+
+
+        const q =
+            Number(
+                quality.value
+            ) / 100;
+
+
+        convertedBlob =
+            await new Promise(
+                resolve => {
+
+                    canvas.toBlob(
+                        resolve,
+                        mime,
+                        q
+                    );
+
+                }
+            );
+
+
+        if(!convertedBlob){
+
+            throw new Error(
+                "画像生成に失敗しました。"
+            );
+
+        }
+
+
+        downloadBtn.disabled =
+            false;
+
+
+        const size =
+            formatBytes(
+                convertedBlob.size
+            );
+
+
+        showStatus(
+            `変換完了！ ${w.toLocaleString()} × ${h.toLocaleString()} px / ${size}`,
+            false
+        );
+
+
+    }catch(error){
+
+        console.error(error);
+
+
+        showStatus(
+            "変換に失敗しました。画像サイズを小さくして再試行してください。",
+            true
+        );
+
+    }finally{
+
+        convertBtn.disabled =
+            false;
+
+    }
+
+}
+
+
+/* =========================================
+   保存
+========================================= */
+
+downloadBtn.addEventListener(
+    "click",
+    () => {
+
+        if(!convertedBlob){
+
+            return;
+
+        }
+
+
+        let ext;
+
+
+        if(format.value === "jpeg"){
+
+            ext = "jpg";
+
+        }else{
+
+            ext =
+                format.value;
+
+        }
+
+
+        let base =
+            fileNameInput.value
+                .trim();
+
+
+        if(!base){
+
+            base =
+                "converted";
+
+        }
+
+
+        /*
+            ファイル名に使えない文字を除去
+        */
+
+        base =
+            base.replace(
+                /[\\/:*?"<>|]/g,
+                "_"
+            );
+
+
+        const w =
+            parseInt(
+                widthInput.value
+            );
+
+
+        const h =
+            parseInt(
+                heightInput.value
+            );
+
+
+        const name =
+            `${base}_${w}x${h}.${ext}`;
+
+
+        const url =
+            URL.createObjectURL(
+                convertedBlob
+            );
+
+
+        const a =
+            document.createElement(
+                "a"
+            );
+
+
+        a.href = url;
+
+        a.download = name;
+
+
+        document.body.appendChild(
+            a
+        );
+
+
+        a.click();
+
+
+        a.remove();
+
+
+        setTimeout(
+            () => {
+
+                URL.revokeObjectURL(
+                    url
+                );
+
+            },
+            1000
+        );
+
+    }
+);
+
+
+/* =========================================
+   リセット
+========================================= */
+
+resetBtn.addEventListener(
+    "click",
+    () => {
+
+        currentSVG = "";
+
+        currentFile = null;
+
+        convertedBlob = null;
+
+
+        if(svgURL){
+
+            URL.revokeObjectURL(
+                svgURL
+            );
+
+            svgURL = null;
+
+        }
+
+
+        mainArea.classList.add(
+            "hidden"
+        );
+
+
+        downloadBtn.disabled =
+            true;
+
+
+        fileInput.value =
+            "";
+
+
+        canvas.width = 1;
+
+        canvas.height = 1;
+
+
+        svgPreview.removeAttribute(
+            "src"
+        );
+
+
+        showStatus(
+            "リセットしました。",
+            false
+        );
+
+    }
+);
+
+
+/* =========================================
+   ステータス表示
+========================================= */
+
+function showStatus(
+    message,
+    isError
+){
+
+    status.textContent =
+        message;
+
+
+    status.className =
+        "status show " +
+        (
+            isError
+                ? "error"
+                : "success"
+        );
+
+}
+
+
+/* =========================================
+   初期設定
+========================================= */
+
+transparent.addEventListener(
+    "change",
+    updateResolutionInfo
+);
+
+bgColor.addEventListener(
+    "change",
+    updateResolutionInfo
+);
+
+updateResolutionInfo();
+
+</script>
+
+</body>
+</html>

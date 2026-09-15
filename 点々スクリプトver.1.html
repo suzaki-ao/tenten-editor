@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ MATRIX ART STUDIO - Premium Edition</title>
+    <style>
+        :root {
+            --bg-main: #090d16;
+            --panel-bg: rgba(30, 41, 59, 0.45);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --accent-neon: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-orange: #f97316;
+            --text-glow: 0 0 10px rgba(16, 185, 129, 0.4);
+            --blur-strength: 16px;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background-color: var(--bg-main);
+            background-image: radial-gradient(circle at 50% 10%, #1e1b4b 0%, #090d16 70%);
+            color: #f8fafc;
+            margin: 0;
+            padding: 30px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            margin: 0 0 5px 0;
+            background: linear-gradient(to right, #10b981, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 2px 8px rgba(59, 130, 246, 0.3));
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            margin-bottom: 35px;
+            font-weight: 500;
+        }
+
+        /* 統合スタジオコンテナ */
+        .studio-container {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(var(--blur-strength));
+            -webkit-backdrop-filter: blur(var(--blur-strength));
+            border: 1px solid var(--panel-border);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+        }
+
+        /* タブシステム */
+        .studio-tabs {
+            display: flex;
+            background: rgba(15, 23, 42, 0.6);
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 18px;
+            background: transparent;
+            border: none;
+            color: #64748b;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tab-btn:hover {
+            color: #cbd5e1;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .tab-btn.active {
+            color: #fff;
+            background: var(--panel-bg);
+            border-bottom: 3px solid var(--accent-neon);
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+
+        /* コンテンツエリア */
+        .tab-content {
+            display: none;
+            padding: 30px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .tab-content.active {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .tab-content.active { grid-template-columns: 1fr; }
+        }
+
+        /* サイドコントロール群 */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 22px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            height: fit-content;
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #64748b;
+            margin-bottom: -5px;
+            border-left: 3px solid var(--accent-blue);
+            padding-left: 8px;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        /* フォーム要素の美化 */
+        input[type="text"], input[type="number"], select {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #fff;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        input[type="file"] {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        /* スライダー美化 */
+        .slider-container {
+            background: #0f172a;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent-blue);
+            cursor: pointer;
+        }
+        .slider-val {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        /* ボタンデザイン */
+        .btn {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn:hover { transform: translateY(-1px); filter: brightness(1.1); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+        .btn:active { transform: translateY(1px); }
+        .btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; transform: none; box-shadow: none; filter: none; }
+        
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); }
+        .btn-success:hover { box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        .btn-orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+        .btn-orange:hover { box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3); }
+
+        /* メインビジュアルエリア（右側） */
+        .display-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-card {
+            background: #020617;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 480px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 4px 30px rgba(0,0,0,0.8);
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.9);
+        }
+
+        .status-bar {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--panel-border);
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: #38bdf8;
+            font-family: monospace;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* 大型テキストエリア */
+        .data-box {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        textarea {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 15px;
+            color: #38bdf8;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            height: 150px;
+            resize: vertical;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>MATRIX ART STUDIO</h1>
+    <div class="subtitle">Premium Typography & Dot Matrix Engine</div>
+
+    <div class="studio-container">
+        <div class="studio-tabs">
+            <button class="tab-btn active" onclick="switchTab('creator')">⚙️ DATA CREATOR（生成エンジン）</button>
+            <button class="tab-btn" onclick="switchTab('player')">🔮 MATRIX PLAYER（再生エンジン）</button>
+        </div>
+
+        <div id="creator-tab" class="tab-content active">
+            <div class="control-panel">
+                <div class="section-title">Source Image</div>
+                <div class="field-group">
+                    <label>① 画像ファイルを選択</label>
+                    <input type="file" id="imageLoader" accept="image/*">
+                </div>
+
+                <div class="section-title">Style & Characters</div>
+                <div class="field-group">
+                    <label>② 描画スタイル</label>
+                    <select id="drawStyle">
+                        <option value="dot" selected>標準：丸いドット（点）</option>
+                        <option value="text">特殊：文字（タイポグラフィ）</option>
+                    </select>
+                </div>
+                <div class="field-group" id="charInputGroup" style="opacity:0.5;">
+                    <label>└ 描画用の循環文字</label>
+                    <input type="text" id="charText" value="@A/1#*+">
+                </div>
+
+                <div class="section-title">Density Options</div>
+                <div class="field-group">
+                    <label>③ 配置の間隔（密度）</label>
+                    <div class="slider-container">
+                        <input type="range" id="stepRange" min="0.5" max="10" value="1" step="0.5">
+                        <div class="slider-val"><span id="stepValLabel">1.0 px</span><span>小さいほど高精細</span></div>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label>④ 描写物の大きさ</label>
+                    <div class="slider-container">
+                        <input type="range" id="sizeRange" min="0.2" max="12" value="1.2" step="0.1">
+                        <div class="slider-val"><span id="sizeValLabel">1.2 px</span><span>隙間の埋め具合を微調整</span></div>
+                    </div>
+                </div>
+
+                <div class="section-title">Filters & Masking</div>
+                <div class="field-group">
+                    <label>⑤ 抽出モード</label>
+                    <select id="targetMode">
+                        <option value="all" selected>画像全体を精密に塗る</option>
+                        <option value="edge">輪郭（エッジ）のみ抽出</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label>⑥ カラーモード</label>
+                    <select id="colorMode">
+                        <option value="color" selected>高再現カラー（フルカラー）</option>
+                        <option value="black">単色（サイバーダーク）</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label>⑦ 文字型抜き設定</label>
+                    <select id="maskMode">
+                        <option value="none" selected>型抜きなし</option>
+                        <option value="char">指定文字列の形にくり抜く</option>
+                    </select>
+                </div>
+                <div class="field-group" id="maskCharGroup" style="opacity:0.5;">
+                    <label>└ 型抜き用の文字列</label>
+                    <input type="text" id="maskChar" value="HELLO">
+                </div>
+
+                <div class="field-group">
+                    <label>⑧ 行数上限（0:無制限）</label>
+                    <input type="number" id="maxLines" value="5000" min="0">
+                </div>
+
+                <button id="restartBtn" class="btn" disabled>⚡ レンダリング開始</button>
+            </div>
+
+            <div class="display-panel">
+                <div class="canvas-card">
+                    <canvas id="creatorCanvas"></canvas>
+                </div>
+                <div class="status-bar">
+                    <span id="creatorStatus">READY / 画像を読み込んでください</span>
+                </div>
+                <div class="data-box" id="outputWrapper" style="display:none;">
+                    <label style="font-size:0.85rem; font-weight:700; color:#cbd5e1;">📋 外部出力用シリアライズデータ</label>
+                    <textarea id="outputData" readonly onclick="this.select();"></textarea>
+                    <button id="copyBtn" class="btn btn-success">データをクリップボードに同期</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="player-tab" class="tab-content">
+            <div class="control-panel">
+                <div class="section-title">Data Input</div>
+                <div class="field-group">
+                    <label>構築マトリクスデータ (CSV)</label>
+                    <textarea id="playerInputData" style="height:180px;" placeholder="ここに X,Y,Char,R,G,B データを貼り付けてください"></textarea>
+                </div>
+
+                <div class="section-title">Playback Engine</div>
+                <div class="field-group">
+                    <label>描画スピード（1Fの処理数）</label>
+                    <div class="slider-container">
+                        <input type="range" id="speedRange" min="50" max="5000" value="1200" step="50">
+                        <div class="slider-val"><span id="speedValLabel">1200 items/f</span></div>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label>再生時の描写サイズ</label>
+                    <select id="playerSizeSelect">
+                        <option value="auto" selected>データ密度から最適に自動計算</option>
+                        <option value="1.5">固定：極小 (1.5px)</option>
+                        <option value="3.0">固定：小 (3.0px)</option>
+                        <option value="5.0">固定：中 (5.0px)</option>
+                        <option value="9.0">固定：大 (9.0px)</option>
+                    </select>
+                </div>
+
+                <button id="playBtn" class="btn btn-orange">🔮 空間マトリクスを再構築</button>
+            </div>
+
+            <div class="display-panel">
+                <div class="canvas-card">
+                    <canvas id="playerCanvas"></canvas>
+                </div>
+                <div class="status-bar">
+                    <span id="playerStatus">WAITING FOR MATRIX DATA</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // タブ切り替え制御
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (tabName === 'creator') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('creator-tab').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('player-tab').classList.add('active');
+            }
+            cancelAnimationFrame(animationFrameId);
+        }
+
+        // --- クリエイター（生成側）コアロジック ---
+        const imageLoader = document.getElementById('imageLoader');
+        const cCanvas = document.getElementById('creatorCanvas');
+        const cCtx = cCanvas.getContext('2d');
+        const drawStyle = document.getElementById('drawStyle');
+        const charInputGroup = document.getElementById('charInputGroup');
+        const charText = document.getElementById('charText');
+        const stepRange = document.getElementById('stepRange');
+        const stepValLabel = document.getElementById('stepValLabel');
+        const sizeRange = document.getElementById('sizeRange');
+        const sizeValLabel = document.getElementById('sizeValLabel');
+        const targetMode = document.getElementById('targetMode');
+        const colorMode = document.getElementById('colorMode');
+        const maskMode = document.getElementById('maskMode');
+        const maskChar = document.getElementById('maskChar');
+        const maskCharGroup = document.getElementById('maskCharGroup');
+        const maxLines = document.getElementById('maxLines');
+        const restartBtn = document.getElementById('restartBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const creatorStatus = document.getElementById('creatorStatus');
+        const outputWrapper = document.getElementById('outputWrapper');
+        const outputData = document.getElementById('outputData');
+
+        let animationFrameId;
+        let currentImg = null;
+        let masterPoints = [];
+
+        // UIリアクティブ連動
+        drawStyle.addEventListener('change', () => charInputGroup.style.opacity = drawStyle.value === 'text' ? "1" : "0.5");
+        maskMode.addEventListener('change', () => maskCharGroup.style.opacity = maskMode.value === 'char' ? "1" : "0.5");
+        stepRange.addEventListener('input', () => stepValLabel.innerText = `${parseFloat(stepRange.value).toFixed(1)} px`);
+        sizeRange.addEventListener('input', () => sizeValLabel.innerText = `${parseFloat(sizeRange.value).toFixed(1)} px`);
+
+        imageLoader.addEventListener('change', (e) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => { currentImg = img; restartBtn.disabled = false; runCreator(img); }
+                img.src = event.target.result;
+            };
+            if(e.target.files[0]) reader.readAsDataURL(e.target.files[0]);
+        });
+
+        restartBtn.addEventListener('click', () => { if(currentImg) runCreator(currentImg); });
+        copyBtn.addEventListener('click', copyToClipboard);
+
+        function runCreator(img) {
+            cancelAnimationFrame(animationFrameId);
+            outputWrapper.style.display = 'none';
+            creatorStatus.innerText = "PROCESSING...";
+
+            const limit = 900;
+            let scale = img.width > img.height ? (img.width > limit ? limit / img.width : 1) : (img.height > limit ? limit / img.height : 1);
+            cCanvas.width = Math.round(img.width * scale);
+            cCanvas.height = Math.round(img.height * scale);
+
+            cCtx.drawImage(img, 0, 0, cCanvas.width, cCanvas.height);
+            const imgData = cCtx.getImageData(0, 0, cCanvas.width, cCanvas.height);
+
+            let maskMap = null;
+            if (maskMode.value === 'char') {
+                maskMap = generateMask(cCanvas.width, cCanvas.height, maskChar.value || "ART");
+            }
+
+            // 白下地クリア
+            cCtx.fillStyle = '#ffffff';
+            cCtx.fillRect(0, 0, cCanvas.width, cCanvas.height);
+
+            masterPoints = buildPoints(imgData, maskMap);
+            
+            let shufflePoints = [...masterPoints];
+            for (let i = shufflePoints.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shufflePoints[i], shufflePoints[j]] = [shufflePoints[j], shufflePoints[i]];
+            }
+
+            creatorStatus.innerText = `TOTAL: ${masterPoints.length} ELEMENTS. RENDERING...`;
+            drawAnimate(shufflePoints, cCtx, creatorStatus, true);
+        }
+
+        function generateMask(w, h, txt) {
+            const mc = document.createElement('canvas');
+            mc.width = w; mc.height = h;
+            const mx = mc.getContext('2d');
+            mx.fillStyle = '#000000'; mx.fillRect(0,0,w,h);
+            mx.fillStyle = '#ffffff';
+            let fSize = Math.min(w, h) * 0.9;
+            mx.font = `bold ${fSize}px sans-serif`;
+            while(mx.measureText(txt).width > w * 0.95 && fSize > 10) {
+                fSize -= 4;
+                mx.font = `bold ${fSize}px sans-serif`;
+            }
+            mx.textAlign = "center"; mx.textBaseline = "middle";
+            mx.fillText(txt, w/2, h/2);
+            return mx.getImageData(0,0,w,h).data;
+        }
+
+        function buildPoints(imgData, maskMap) {
+            const w = imgData.width, h = imgData.height, d = imgData.data;
+            const list = [];
+            const step = parseFloat(stepRange.value);
+            const isText = drawStyle.value === 'text';
+            const chars = charText.value || "@";
+            const isColor = colorMode.value === 'color';
+            let count = 0;
+
+            for(let y=0; y<h; y+=step) {
+                for(let x=0; x<w; x+=step) {
+                    const ix = Math.floor(x), iy = Math.floor(y);
+                    if(maskMap) {
+                        if(maskMap[(iy * w + ix) * 4] < 128) continue;
+                    }
+                    const i = (iy * w + ix) * 4;
+                    if(d[i+3] === 0 || (d[i]>=253 && d[i+1]>=253 && d[i+2]>=253)) continue;
+
+                    if(targetMode.value === 'edge') {
+                        if(x+step >= w || y+step >= h) continue;
+                        const rI = (iy * w + Math.floor(x+step)) * 4;
+                        const bI = (Math.floor(y+step) * w + ix) * 4;
+                        const cL = 0.3*d[i]+0.59*d[i+1]+0.11*d[i+2];
+                        const rL = 0.3*d[rI]+0.59*d[rI+1]+0.11*d[rI+2];
+                        const bL = 0.3*d[bI]+0.59*d[bI+1]+0.11*d[bI+2];
+                        if(Math.sqrt((rL-cL)**2 + (bL-cL)**2) < 25) continue;
+                    }
+
+                    list.push({
+                        x: parseFloat(x.toFixed(1)),
+                        y: parseFloat(y.toFixed(1)),
+                        char: isText ? chars[count % chars.length] : '●',
+                        r: isColor ? d[i] : 10,
+                        g: isColor ? d[i+1] : 15,
+                        b: isColor ? d[i+2] : 26
+                    });
+                    count++;
+                }
+            }
+            return list;
+        }
+
+        function drawAnimate(pts, targetCtx, statusEl, isCreatorMode) {
+            let idx = 0;
+            const isText = drawStyle.value === 'text';
+            const size = parseFloat(sizeRange.value);
+
+            if(isText) {
+                targetCtx.font = `bold ${size}px monospace`;
+                targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle";
+            }
+
+            function frame() {
+                const chunk = isCreatorMode ? 1500 : parseInt(document.getElementById('speedRange').value);
+                for(let i=0; i<chunk; i++) {
+                    if(idx >= pts.length) {
+                        statusEl.innerText = `COMPLETED / TOTAL: ${pts.length} ITEMS`;
+                        if(isCreatorMode) finishCreator();
+                        return;
+                    }
+                    const p = pts[idx];
+                    targetCtx.fillStyle = `rgb(${p.r},${p.g},${p.b})`;
+                    if(p.char === '●') {
+                        targetCtx.beginPath(); targetCtx.arc(p.x, p.y, size*0.5, 0, Math.PI*2); targetCtx.fill();
+                    } else {
+                        if(!isCreatorMode) targetCtx.font = `bold ${size}px monospace`;
+                        targetCtx.fillText(p.char, p.x, p.y);
+                    }
+                    idx++;
+                }
+                animationFrameId = requestAnimationFrame(frame);
+            }
+            frame();
+        }
+
+        function finishCreator() {
+            const limit = parseInt(maxLines.value) || 0;
+            let exportList = [...masterPoints];
+            if(limit > 0 && exportList.length > limit) {
+                exportList = exportList.filter((_,i) => i % Math.ceil(exportList.length/limit) === 0).slice(0, limit);
+            }
+            outputData.value = "X,Y,Char,R,G,B\n" + exportList.map(p => `${p.x},${p.y},${p.char},${p.r},${p.g},${p.b}`).join("\n");
+            outputWrapper.style.display = 'flex';
+        }
+
+        function copyToClipboard() {
+            navigator.clipboard.writeText(outputData.value).then(() => alert("Studio Data Copied!"));
+        }
+
+
+        // --- プレイヤー（再生側）コアロジック ---
+        const pCanvas = document.getElementById('playerCanvas');
+        const pCtx = pCanvas.getContext('2d');
+        const pInput = document.getElementById('playerInputData');
+        const playBtn = document.getElementById('playBtn');
+        const playerStatus = document.getElementById('playerStatus');
+        const speedRange = document.getElementById('speedRange');
+        const speedValLabel = document.getElementById('speedValLabel');
+        const playerSizeSelect = document.getElementById('playerSizeSelect');
+
+        speedRange.addEventListener('input', () => speedValLabel.innerText = `${speedRange.value} items/f`);
+        playBtn.addEventListener('click', runPlayer);
+
+        function runPlayer() {
+            cancelAnimationFrame(animationFrameId);
+            const txt = pInput.value.trim();
+            if(!txt) return alert("貼り付けられたマトリクスデータが見つかりません。");
+
+            playerStatus.innerText = "PARSING MATRIX...";
+            const lines = txt.split('\n');
+            const parsed = [];
+            let maxX=0, maxY=0, lastX=null, minGap=Infinity;
+
+            for(let i=0; i<lines.length; i++) {
+                const l = lines[i].trim();
+                if(!l || l.startsWith('X,Y')) continue;
+                const arr = l.split(',');
+                if(arr.length < 6) continue;
+
+                const x = parseFloat(arr[0]), y = parseFloat(arr[1]);
+                if(x>maxX) maxX=x; if(y>maxY) maxY=y;
+                if(lastX!==null && Math.abs(x-lastX)>0.1) minGap = Math.min(minGap, Math.abs(x-lastX));
+                lastX = x;
+
+                parsed.push({ x, y, char: arr[2], r:parseInt(arr[3]), g:parseInt(arr[4]), b:parseInt(arr[5]) });
+            }
+
+            if(parsed.length === 0) { playerStatus.innerText = "ERROR / INVALID DATA"; return; }
+
+            pCanvas.width = Math.ceil(maxX) + 15;
+            pCanvas.height = Math.ceil(maxY) + 15;
+            pCtx.fillStyle = '#ffffff'; pCtx.fillRect(0,0,pCanvas.width,pCanvas.height);
+
+            let calcSize = parseFloat(playerSizeSelect.value);
+            if(isNaN(calcSize)) calcSize = minGap === Infinity ? 1.2 : minGap * 1.2;
+
+            playerStatus.innerText = `REBUILDING SPACE MATRIX / ${parsed.length} ELEMENTS`;
+            
+            // 再生側スライダー（太さ）の値を偽装反映させて流用
+            sizeRange.value = calcSize;
+            drawStyle.value = parsed[0].char === '●' ? 'dot' : 'text';
+
+            drawAnimate(parsed, pCtx, playerStatus, false);
+        }
+    </script>
+</body>
+</html>
