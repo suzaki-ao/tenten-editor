@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像ドット＆文字アート生成ツール - 高機能データ出力版</title>
+    <style>
+        :root {
+            --bg-color: #111827;
+            --panel-color: #1f2937;
+            --accent-color: #10b981;
+            --text-color: #f9fafb;
+            --control-bg: #374151;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { font-size: 1.6rem; margin-bottom: 5px; color: var(--accent-color); }
+        p { font-size: 0.9rem; color: #9ca3af; margin-top: 0; margin-bottom: 20px; }
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            background: var(--panel-color);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            box-sizing: border-box;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            background: var(--control-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #4b5563;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .control-group label { margin-bottom: 6px; color: #e5e7eb; }
+        .control-group input[type="text"], .control-group input[type="range"], .control-group input[type="number"], .control-group select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            background: #1f2937;
+            color: #fff;
+        }
+        .control-group input[type="range"] { padding: 0; }
+        
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+            grid-column: 1 / -1;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 14px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 150px;
+        }
+        button:hover { background-color: #1d4ed8; transform: translateY(-1px); }
+        button#saveBtn { background-color: #ea580c; }
+        button#saveBtn:hover { background-color: #c2410c; }
+        button#copyBtn { background-color: #10b981; }
+        button#copyBtn:hover { background-color: #059669; }
+        button:disabled { background-color: #4b5563; color: #9ca3af; cursor: not-allowed; transform: none; }
+        
+        #canvas-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #090d16;
+            border-radius: 12px;
+            overflow: hidden;
+            padding: 15px;
+            box-sizing: border-box;
+            min-height: 450px;
+        }
+        canvas {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            background: #ffffff;
+            max-width: 100%;
+            max-height: 75vh;
+            object-fit: contain;
+        }
+        #status { text-align: center; font-size: 0.9rem; margin-top: 12px; color: var(--accent-color); font-weight: bold; }
+        
+        #textarea-wrapper {
+            margin-top: 20px;
+            width: 100%;
+            display: none;
+        }
+        #textarea-wrapper textarea {
+            width: 100%;
+            height: 180px;
+            box-sizing: border-box;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            resize: vertical;
+            background: #111827;
+            color: #10b981;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>画像ドット＆文字アート生成ツール - 高機能データ出力版</h1>
+    <p>外部ツール連携用：座標に加え「配置した文字」と「RGBカラー」をすべて含めて書き出します。</p>
+
+    <div class="container">
+        <div class="controls">
+            <div class="control-group">
+                <label for="imageLoader">① 画像を選択</label>
+                <input type="file" id="imageLoader" accept="image/*">
+            </div>
+            
+            <div class="control-group">
+                <label for="drawStyle">② 描画スタイル</label>
+                <select id="drawStyle">
+                    <option value="dot" selected>標準：丸いドット（点）</option>
+                    <option value="text">特殊：文字（アスキーアート風）</option>
+                </select>
+            </div>
+            <div class="control-group" id="charInputGroup" style="opacity: 0.5;">
+                <label for="charText">└ 描画用の文字（ループされます）</label>
+                <input type="text" id="charText" value="@A/1#*+" placeholder="例: @A/1">
+            </div>
+
+            <div class="control-group">
+                <label for="targetMode">③ 抽出ターゲット</label>
+                <select id="targetMode">
+                    <option value="all" selected>背景も含む「画像全体」</option>
+                    <option value="edge">画像の「輪郭（エッジ）」だけ</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="colorMode">④ 描画カラー</label>
+                <select id="colorMode">
+                    <option value="color">画像の色を詳細検知（高再現カラー）</option>
+                    <option value="black">単色（漆黒固定：R0,G0,B0）</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="stepRange">⑤ 点・文字の間隔（小さいほど高画質）</label>
+                <input type="range" id="stepRange" min="0.5" max="12" value="1" step="0.5">
+                <span id="densityLabel" style="font-size:0.75rem; color:#10b981; margin-top:2px; text-align:right;">間隔: 1px 【★品質極限ターボ】</span>
+            </div>
+            <div class="control-group">
+                <label for="dotSize">⑥ サイズ設定（自動推奨）</label>
+                <select id="dotSize">
+                    <option value="auto" selected>自動モード</option>
+                    <option value="0.3">固定：極小 (0.3)</option>
+                    <option value="0.5">固定：微小 (0.5)</option>
+                    <option value="1.0">固定：小 (1.0)</option>
+                    <option value="1.8">固定：中 (1.8)</option>
+                    <option value="3.0">固定：大 (3.0)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="threshold">⑦ 輪郭の感度（輪郭モード用）</label>
+                <input type="range" id="threshold" min="5" max="100" value="25" step="5">
+            </div>
+
+            <div class="control-group">
+                <label for="maskMode">⑧ 型抜き（切り抜き）設定</label>
+                <select id="maskMode">
+                    <option value="none" selected>画像全体の形のまま（型抜きなし）</option>
+                    <option value="char">指定した文字列の形に型抜きする</option>
+                </select>
+            </div>
+            <div class="control-group" id="maskCharGroup" style="opacity: 0.5;">
+                <label for="maskChar">└ 型抜き用の文字列（複数可）</label>
+                <input type="text" id="maskChar" value="HELLO" placeholder="例: ★❤︎★ や ART">
+            </div>
+
+            <div class="control-group">
+                <label for="maxLines">⑩ コピペ最大データ行数（0で無制限）</label>
+                <input type="number" id="maxLines" min="0" value="5000">
+            </div>
+            
+            <div class="btn-group">
+                <button id="restartBtn" disabled>設定を反映して再生成</button>
+                <button id="saveBtn" disabled>画像を保存する</button>
+                <button id="copyBtn" disabled>色・文字入りデータをまとめてコピー</button>
+            </div>
+        </div>
+
+        <div id="canvas-wrapper">
+            <canvas id="imageCanvas"></canvas>
+        </div>
+        <div id="status">画像を選択してください</div>
+
+        <div id="textarea-wrapper">
+            <label id="textareaLabel" style="font-size:0.8rem; font-weight:bold; color:#9ca3af;"></label>
+            <textarea id="outputData" readonly onclick="this.select();"></textarea>
+        </div>
+    </div>
+
+    <script>
+        const imageLoader = document.getElementById('imageLoader');
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+        const drawStyleSelect = document.getElementById('drawStyle');
+        const charTextInput = document.getElementById('charText'); 
+        const charInputGroup = document.getElementById('charInputGroup');
+        const targetModeSelect = document.getElementById('targetMode');
+        const colorModeSelect = document.getElementById('colorMode');
+        const stepRange = document.getElementById('stepRange');
+        const densityLabel = document.getElementById('densityLabel');
+        const dotSizeSelect = document.getElementById('dotSize');
+        const thresholdInput = document.getElementById('threshold');
+        const maskModeSelect = document.getElementById('maskMode');
+        const maskCharInput = document.getElementById('maskChar');
+        const maskCharGroup = document.getElementById('maskCharGroup');
+        const maxLinesInput = document.getElementById('maxLines');
+        const restartBtn = document.getElementById('restartBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const statusText = document.getElementById('status');
+        const textareaWrapper = document.getElementById('textarea-wrapper');
+        const outputData = document.getElementById('outputData');
+        const textareaLabel = document.getElementById('textareaLabel');
+
+        let animationFrameId;
+        let currentImg = null;
+        let allPoints = []; // 座標、固有の文字、RGBデータを保持する
+
+        drawStyleSelect.addEventListener('change', () => {
+            charInputGroup.style.opacity = (drawStyleSelect.value === 'text') ? "1" : "0.5";
+        });
+
+        maskModeSelect.addEventListener('change', () => {
+            maskCharGroup.style.opacity = (maskModeSelect.value === 'char') ? "1" : "0.5";
+        });
+
+        stepRange.addEventListener('input', () => {
+            const val = parseFloat(stepRange.value);
+            if (val === 0.5) {
+                densityLabel.innerText = "間隔: 0.5px 【★★ハイパー限界突破モード】";
+                densityLabel.style.color = "#ec4899";
+            } else if (val === 1) {
+                densityLabel.innerText = "間隔: 1px 【★品質極限ターボ】";
+                densityLabel.style.color = "#10b981";
+            } else {
+                densityLabel.innerText = `間隔: ${val}px`;
+                densityLabel.style.color = "#9ca3af";
+            }
+        });
+
+        imageLoader.addEventListener('change', handleImage, false);
+        restartBtn.addEventListener('click', () => { if(currentImg) processImage(currentImg); });
+        saveBtn.addEventListener('click', saveCanvasAsImage);
+        copyBtn.addEventListener('click', copyPointsToClipboard);
+
+        function handleImage(e) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    currentImg = img;
+                    restartBtn.disabled = false;
+                    processImage(img);
+                }
+                img.src = event.target.result;
+            }
+            if(e.target.files[0]) {
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        }
+
+        function processImage(img) {
+            cancelAnimationFrame(animationFrameId);
+            copyBtn.disabled = true;
+            saveBtn.disabled = true;
+            textareaWrapper.style.display = 'none'; 
+            statusText.innerText = "キャラ絵スキャンエンジン起動中...";
+
+            const maxDimension = 1000; 
+            let scale = 1;
+
+            if (img.width > maxDimension || img.height > maxDimension) {
+                scale = img.width > img.height ? maxDimension / img.width : maxDimension / img.height;
+            }
+
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            
+            let maskData = null;
+            if (maskModeSelect.value === 'char') {
+                maskData = createMaskMap(canvas.width, canvas.height, maskCharInput.value || "HELLO");
+            }
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            allPoints = extractPoints(imgData, maskData);
+            
+            // 描画アニメーション用にはシャッフルした配列を渡す
+            let drawPoints = [...allPoints];
+            shuffleArray(drawPoints);
+
+            statusText.innerText = `スキャン完了: ${allPoints.length} 個の要素を配置。綺麗に塗っています...`;
+            animatePoints(drawPoints);
+        }
+
+        function createMaskMap(w, h, text) {
+            const offscreen = document.createElement('canvas');
+            offscreen.width = w;
+            offscreen.height = h;
+            const oCtx = offscreen.getContext('2d');
+            
+            oCtx.fillStyle = '#000000';
+            oCtx.fillRect(0, 0, w, h);
+            
+            oCtx.fillStyle = '#ffffff';
+            
+            let fontSize = Math.min(w, h) * 0.9;
+            oCtx.font = `bold ${fontSize}px sans-serif`;
+            let textWidth = oCtx.measureText(text).width;
+            
+            while (textWidth > w * 0.95 && fontSize > 10) {
+                fontSize -= 5;
+                oCtx.font = `bold ${fontSize}px sans-serif`;
+                textWidth = oCtx.measureText(text).width;
+            }
+            
+            oCtx.textAlign = "center";
+            oCtx.textBaseline = "middle";
+            oCtx.fillText(text, w / 2, h / 2);
+            
+            return oCtx.getImageData(0, 0, w, h).data;
+        }
+
+        function extractPoints(imgData, maskData) {
+            const w = imgData.width;
+            const h = imgData.height;
+            const d = imgData.data;
+            const points = [];
+            const targetMode = targetModeSelect.value;
+            const step = parseFloat(stepRange.value); 
+            const thresh = parseInt(thresholdInput.value);
+            const isTextStyle = (drawStyleSelect.value === 'text');
+            const charList = charTextInput.value || "@";
+            const isColorMode = (colorModeSelect.value === 'color');
+
+            let pointCounter = 0;
+
+            function getPixelInfo(x, y) {
+                const ix = Math.floor(x);
+                const iy = Math.floor(y);
+                if (ix < 0 || ix >= w || iy < 0 || iy >= h) return { lum: 255, r: 255, g: 255, b: 255, a: 0 };
+                const i = (iy * w + ix) * 4;
+                return { 
+                    r: d[i], 
+                    g: d[i+1], 
+                    b: d[i+2], 
+                    a: d[i+3],
+                    lum: 0.2126 * d[i] + 0.7152 * d[i+1] + 0.0722 * d[i+2]
+                };
+            }
+
+            for (let y = 0; y < h; y += step) {
+                for (let x = 0; x < w; x += step) {
+                    const ix = Math.floor(x);
+                    const iy = Math.floor(y);
+
+                    if (maskData) {
+                        const maskIndex = (iy * w + ix) * 4;
+                        if (maskData[maskIndex] < 128) continue; 
+                    }
+
+                    const center = getPixelInfo(x, y);
+                    if (center.a === 0 || (center.r >= 252 && center.g >= 252 && center.b >= 252)) continue;
+
+                    // 割り当てられる文字をデータ抽出の段階で確定させる
+                    const assignedChar = isTextStyle ? charList[pointCounter % charList.length] : "●";
+                    
+                    // 色モードに応じたRGB値の確定
+                    const finalR = isColorMode ? center.r : 17;
+                    const finalG = isColorMode ? center.g : 17;
+                    const finalB = isColorMode ? center.b : 17;
+
+                    if (targetMode === 'all') {
+                        points.push({ x: x, y: y, char: assignedChar, r: finalR, g: finalG, b: finalB });
+                        pointCounter++;
+                    } else {
+                        const right = getPixelInfo(x + step, y);
+                        const bottom = getPixelInfo(x, y + step);
+                        const hGrad = right.lum - center.lum;
+                        const vGrad = bottom.lum - center.lum;
+                        const magnitude = Math.sqrt(hGrad * hGrad + vGrad * vGrad);
+
+                        if (magnitude > thresh) {
+                            points.push({ x: x, y: y, char: assignedChar, r: finalR, g: finalG, b: finalB });
+                            pointCounter++;
+                        }
+                    }
+                }
+            }
+            return points;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function animatePoints(points) {
+            let index = 0;
+            const isTextStyle = (drawStyleSelect.value === 'text'); 
+            const step = parseFloat(stepRange.value);
+            
+            let size;
+            if (dotSizeSelect.value === 'auto') {
+                if (step <= 0.5) {
+                    size = isTextStyle ? 0.7 : 0.38; 
+                } else if (step === 1) {
+                    size = isTextStyle ? 1.3 : 0.72;
+                } else {
+                    size = isTextStyle ? step * 1.1 : step * 0.68;
+                }
+            } else {
+                size = parseFloat(dotSizeSelect.value) * (isTextStyle ? 1.4 : 1.0); 
+            }
+            
+            if (isTextStyle) {
+                ctx.font = `bold ${size}px monospace`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+            }
+
+            const pointsPerFrame = Math.max(800, Math.floor(points.length / 60)); 
+
+            function draw() {
+                for (let i = 0; i < pointsPerFrame; i++) {
+                    if (index >= points.length) {
+                        statusText.innerText = `完成！ 限界突破総数: ${allPoints.length} 個`;
+                        copyBtn.disabled = false; 
+                        saveBtn.disabled = false; 
+                        return;
+                    }
+
+                    const pt = points[index];
+                    ctx.fillStyle = `rgb(${pt.r},${pt.g},${pt.b})`; 
+
+                    if (isTextStyle) {
+                        ctx.fillText(pt.char, pt.x, pt.y);
+                    } else {
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    index++;
+                }
+                animationFrameId = requestAnimationFrame(draw);
+            }
+            draw();
+        }
+
+        function saveCanvasAsImage() {
+            if (allPoints.length === 0) return;
+            const link = document.createElement('a');
+            link.download = 'high_tech_art.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function copyPointsToClipboard() {
+            if (allPoints.length === 0) return;
+
+            const maxLines = parseInt(maxLinesInput.value) || 0;
+            let pointsToCopy = [...allPoints];
+
+            // 制限がある場合は間引きする
+            if (maxLines > 0 && pointsToCopy.length > maxLines) {
+                const sampledPoints = [];
+                const step = pointsToCopy.length / maxLines;
+                for (let i = 0; i < maxLines; i++) {
+                    const index = Math.floor(i * step);
+                    sampledPoints.push(pointsToCopy[index]);
+                }
+                pointsToCopy = sampledPoints;
+            }
+
+            // ヘッダー行にChar, R, G, Bを追加
+            let textData = "X,Y,Char,R,G,B\n"; 
+            textData += pointsToCopy.map(pt => 
+                `${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.char},${pt.r},${pt.g},${pt.b}`
+            ).join("\n");
+
+            outputData.value = textData;
+            textareaLabel.innerText = `データを作成しました（データ行数: ${pointsToCopy.length} 行）。別サイトへのコピペにご利用ください：`;
+            textareaWrapper.style.display = 'block';
+
+            navigator.clipboard.writeText(textData).then(() => {
+                alert(`色・文字入りデータのコピー完了！\nデータ行数: ${pointsToCopy.length} 行\n\nクリップボードに格納されました。そのまま別サイトに貼り付けられます。`);
+            }).catch(err => {
+                alert(`データを作成しました。\n最下部のテキストエリアからコピーしてご利用ください。`);
+            });
+        }
+    </script>
+</body>
+</html>

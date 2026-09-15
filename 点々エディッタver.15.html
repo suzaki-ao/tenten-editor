@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>点々エディッタ ver.16 — カメレオン</title>
+<style>
+:root{
+  --bg:#0a0a0f;--panel:#12121a;--card:#1a1a26;--border:#2a2a3d;
+  --accent:#10b981;--accent2:#6366f1;--text:#f0f0ff;--sub:#6b7280;
+  --red:#f87171;--amber:#fbbf24;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px}
+h1{font-size:1.6rem;font-weight:900;letter-spacing:-.02em;margin-bottom:2px}
+h1 span.dot{color:var(--accent)}
+h1 span.ver{color:var(--sub);font-size:.75rem;font-weight:400;margin-left:8px}
+.tagline{font-size:.8rem;color:var(--sub);margin-bottom:16px}
+
+.app{width:100%;max-width:1200px;display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start}
+@media(max-width:860px){.app{grid-template-columns:1fr}}
+
+/* ── Sidebar ── */
+.sidebar{display:flex;flex-direction:column;gap:10px;position:sticky;top:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+.card h3{font-size:.8rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+
+.cg{display:flex;flex-direction:column;gap:4px;margin-bottom:9px}
+.cg:last-child{margin-bottom:0}
+.cg label{font-size:.76rem;font-weight:600;color:#c4c4d4}
+.cg select,.cg input[type=text],.cg input[type=number]{
+  width:100%;padding:6px 9px;background:#0f0f18;border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:.8rem
+}
+.cg input[type=range]{width:100%;accent-color:var(--accent)}
+.r2{display:flex;gap:6px;align-items:center}
+.r2 input[type=range]{flex:1}
+.r2 input[type=number]{width:56px!important;text-align:center;padding:5px}
+.val{font-size:.72rem;color:var(--accent);text-align:right;margin-top:1px}
+
+/* ── Preset pills ── */
+.presets{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.preset-btn{
+  padding:5px 10px;border-radius:20px;border:1px solid var(--border);
+  background:var(--panel);color:#c4c4d4;font-size:.73rem;font-weight:600;
+  cursor:pointer;transition:all .18s;white-space:nowrap
+}
+.preset-btn:hover{border-color:var(--accent);color:var(--accent)}
+.preset-btn.active{background:var(--accent);border-color:var(--accent);color:#000}
+
+/* ── Buttons ── */
+button{cursor:pointer;border:none;border-radius:8px;font-weight:700;transition:all .18s}
+.btn-primary{background:var(--accent);color:#000;padding:10px 16px;font-size:.84rem;width:100%}
+.btn-primary:hover{filter:brightness(1.15)}
+.btn-primary:disabled{background:var(--border);color:var(--sub);cursor:not-allowed}
+.btn-secondary{background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 12px;font-size:.8rem}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:#7f1d1d;color:#fca5a5;padding:8px 12px;font-size:.8rem}
+.btn-danger:hover{background:#991b1b}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ── Chameleon transport ── */
+.transport{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.transport button{padding:9px 14px;font-size:.82rem}
+#playBtn{background:var(--accent);color:#000;min-width:80px}
+#playBtn.playing{background:#ef4444;color:#fff}
+
+/* ── Sync mode pills ── */
+.sync-modes{display:flex;gap:4px;flex-wrap:wrap}
+.sync-btn{padding:5px 10px;border-radius:16px;border:1px solid var(--border);background:var(--panel);color:var(--sub);font-size:.72rem;font-weight:600;cursor:pointer;transition:all .18s}
+.sync-btn.active{background:var(--accent2);border-color:var(--accent2);color:#fff}
+
+/* ── Main canvas area ── */
+.main-area{display:flex;flex-direction:column;gap:12px}
+#canvas-wrap{
+  width:100%;border-radius:14px;overflow:hidden;position:relative;
+  background:#090912;
+  display:flex;justify-content:center;align-items:center;min-height:420px;
+}
+.checker-bg{
+  background-image:linear-gradient(45deg,#141420 25%,transparent 25%),linear-gradient(-45deg,#141420 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#141420 75%),linear-gradient(-45deg,transparent 75%,#141420 75%);
+  background-size:22px 22px;background-position:0 0,0 11px,11px -11px,-11px 0
+}
+#dotCanvas{max-width:100%;max-height:75vh;display:block}
+
+/* overlay for video hidden behind dots */
+#videoEl{display:none;position:absolute;pointer-events:none}
+
+/* status bar */
+.status-bar{
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  padding:8px 14px;font-size:.78rem;color:var(--accent);font-weight:700;text-align:center
+}
+.status-bar span.dim{color:var(--sub);font-weight:400}
+
+/* progress bar */
+.prog-wrap{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:4px;display:none}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .2s}
+
+/* ── bottom toolbar ── */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* video timeline */
+.timeline-wrap{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px}
+#timelineBar{width:100%;accent-color:var(--accent);cursor:pointer}
+.time-row{display:flex;justify-content:space-between;font-size:.72rem;color:var(--sub);margin-top:3px}
+
+/* speed indicator */
+#fpsDisplay{font-size:.72rem;color:var(--sub)}
+
+/* filter canvas (hidden, for processing) */
+#filterCanvas{display:none}
+
+/* ── Atmosphere badge ── */
+.atmo-name{
+  position:absolute;top:10px;right:10px;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.1);border-radius:20px;
+  padding:4px 12px;font-size:.72rem;font-weight:700;color:#fff;
+  pointer-events:none;transition:opacity .4s;
+}
+
+/* ── Section label ── */
+.sec-label{font-size:.68rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;display:block}
+
+/* Color channel mix  */
+.ch-row{display:grid;grid-template-columns:14px 1fr 36px;gap:5px;align-items:center;margin-bottom:4px}
+.ch-dot{width:10px;height:10px;border-radius:50%}
+
+/* ── Loading overlay ── */
+#loadingOverlay{
+  position:absolute;inset:0;background:rgba(10,10,15,.85);backdrop-filter:blur(4px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  border-radius:14px;z-index:10;display:none
+}
+#loadingOverlay.show{display:flex}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<h1><span class="dot">点々</span>エディッタ<span class="ver">ver.16 Chameleon</span></h1>
+<p class="tagline">ドットアート × 動画カメレオン × 雰囲気プリセット</p>
+
+<div class="app">
+
+<!-- ══════ SIDEBAR ══════ -->
+<div class="sidebar">
+
+  <!-- 入力 -->
+  <div class="card">
+    <h3>入力ソース</h3>
+    <div class="cg"><label>静止画 / 基準フレーム</label><input type="file" id="imgLoad" accept="image/*"></div>
+    <div class="cg"><label>🎬 動画（カメレオン用）</label><input type="file" id="vidLoad" accept="video/*"></div>
+    <div class="btn-row" style="margin-top:6px">
+      <button class="btn-primary" id="generateBtn" disabled>✦ ドット生成</button>
+    </div>
+  </div>
+
+  <!-- 雰囲気プリセット -->
+  <div class="card">
+    <h3>✦ 雰囲気プリセット</h3>
+    <div class="presets" id="presetList">
+      <button class="preset-btn active" data-preset="normal">ノーマル</button>
+      <button class="preset-btn" data-preset="anime">アニメ</button>
+      <button class="preset-btn" data-preset="cyberpunk">サイバーパンク</button>
+      <button class="preset-btn" data-preset="film">映画風</button>
+      <button class="preset-btn" data-preset="vintage">ヴィンテージ</button>
+      <button class="preset-btn" data-preset="watercolor">水彩</button>
+      <button class="preset-btn" data-preset="neon">ネオン</button>
+      <button class="preset-btn" data-preset="infrared">赤外線</button>
+      <button class="preset-btn" data-preset="duotone">デュオトーン</button>
+      <button class="preset-btn" data-preset="thermal">サーモ</button>
+      <button class="preset-btn" data-preset="xray">Xレイ</button>
+      <button class="preset-btn" data-preset="vaporwave">Vaporwave</button>
+      <button class="preset-btn" data-preset="sketch">スケッチ</button>
+      <button class="preset-btn" data-preset="glitch">グリッチ</button>
+    </div>
+    <div class="cg" style="margin-top:10px">
+      <label>プリセット強度</label>
+      <div class="r2"><input type="range" id="presetStrength" min="0" max="1" value="1" step=".05"><span id="presetStrengthVal" class="val">100%</span></div>
+    </div>
+  </div>
+
+  <!-- ドット設定 -->
+  <div class="card">
+    <h3>ドット設定</h3>
+    <div class="cg"><label>描画スタイル</label>
+      <select id="drawStyle">
+        <option value="dot">● 丸ドット</option>
+        <option value="square">■ 四角</option>
+        <option value="diamond">◆ ダイヤ</option>
+        <option value="text">Aa 文字</option>
+        <option value="cross">✚ クロス</option>
+        <option value="star">★ スター</option>
+      </select>
+    </div>
+    <div class="cg" id="charGrp" style="display:none"><label>描画文字</label><input type="text" id="charText" value="@#*+/\|"></div>
+    <div class="cg"><label>抽出モード</label>
+      <select id="targetMode">
+        <option value="ultraEdge" selected>超輪郭検知</option>
+        <option value="all">全体</option>
+        <option value="edge">通常輪郭</option>
+      </select>
+    </div>
+    <div class="cg"><label>点の間隔</label>
+      <div class="r2"><input type="range" id="stepR" min=".5" max="10" value="2" step=".5"><span id="stepVal" class="val">2px</span></div>
+    </div>
+    <div class="cg"><label>輪郭感度</label>
+      <div class="r2"><input type="range" id="threshR" min="1" max="80" value="15" step="1"><span id="threshVal" class="val">15</span></div>
+    </div>
+    <div class="cg"><label>ドットサイズ</label>
+      <div class="r2"><input type="range" id="sizeR" min=".2" max="4" value="1" step=".1"><span id="sizeVal" class="val">自動</span></div>
+    </div>
+  </div>
+
+  <!-- カメレオン設定 -->
+  <div class="card">
+    <h3>🦎 カメレオン設定</h3>
+    <div class="cg"><label>色変化モード</label>
+      <div class="sync-modes">
+        <button class="sync-btn active" data-sync="realtime">リアルタイム</button>
+        <button class="sync-btn" data-sync="slow">スロー溶け</button>
+        <button class="sync-btn" data-sync="snap">バチ切替</button>
+        <button class="sync-btn" data-sync="pulse">パルス</button>
+      </div>
+    </div>
+    <div class="cg" id="slowCfg">
+      <label>溶け速度（スローモード）</label>
+      <div class="r2"><input type="range" id="blendSpeed" min=".01" max=".3" value=".08" step=".01"><span id="blendSpeedVal" class="val">.08</span></div>
+    </div>
+    <div class="cg">
+      <label>色サンプリング精度</label>
+      <select id="samplingMode">
+        <option value="point">高速（点サンプル）</option>
+        <option value="area" selected>標準（エリア平均）</option>
+        <option value="weighted">高精度（重み付き）</option>
+      </select>
+    </div>
+    <div class="cg">
+      <label>明度ブースト</label>
+      <div class="r2"><input type="range" id="briBoost" min="-80" max="80" value="0" step="5"><span id="briBoostVal" class="val">0</span></div>
+    </div>
+    <div class="cg">
+      <label>彩度ブースト</label>
+      <div class="r2"><input type="range" id="satBoost" min="-100" max="100" value="0" step="5"><span id="satBoostVal" class="val">0</span></div>
+    </div>
+  </div>
+
+  <!-- 保存 -->
+  <div class="card">
+    <h3>書き出し</h3>
+    <div class="btn-row">
+      <button class="btn-secondary" id="saveFrameBtn" disabled>📷 現在フレーム保存</button>
+    </div>
+  </div>
+
+</div><!-- /sidebar -->
+
+<!-- ══════ MAIN ══════ -->
+<div class="main-area">
+
+  <div id="canvas-wrap" class="checker-bg">
+    <canvas id="dotCanvas"></canvas>
+    <video id="videoEl" playsinline></video>
+    <div id="loadingOverlay"><div class="spinner"></div><span id="loadingMsg">処理中...</span></div>
+    <div class="atmo-name" id="atmosBadge">ノーマル</div>
+  </div>
+
+  <div class="prog-wrap" id="progWrap"><div class="prog-bar" id="progBar"></div></div>
+  <div class="status-bar" id="statusBar">画像か動画を選択してください <span class="dim">— 画像でドット生成 → 動画でカメレオン</span></div>
+
+  <!-- 動画トランスポート -->
+  <div class="card" id="transportCard" style="display:none">
+    <h3>🎬 カメレオン再生</h3>
+    <div class="timeline-wrap">
+      <input type="range" id="timelineBar" min="0" max="100" value="0" step=".1">
+      <div class="time-row"><span id="timeCurrent">0:00</span><span id="fpsDsp"></span><span id="timeDuration">0:00</span></div>
+    </div>
+    <div class="transport" style="margin-top:10px">
+      <button class="btn-secondary" id="rewindBtn">⏮</button>
+      <button id="playBtn" style="padding:9px 20px;font-size:.85rem;background:var(--accent);color:#000;border-radius:8px;font-weight:700;min-width:80px">▶ 再生</button>
+      <button class="btn-secondary" id="stepFrameBtn">⏭ 1F</button>
+      <div class="cg" style="flex:1;min-width:120px;margin:0">
+        <label style="font-size:.7rem">再生速度</label>
+        <select id="playbackSpeed" style="padding:5px;background:#0f0f18;border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.78rem">
+          <option value=".25">0.25x</option>
+          <option value=".5">0.5x</option>
+          <option value="1" selected>1.0x</option>
+          <option value="2">2.0x</option>
+          <option value="4">4.0x</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Hidden filter canvas -->
+<canvas id="filterCanvas"></canvas>
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+const dotCanvas = document.getElementById('dotCanvas');
+const ctx = dotCanvas.getContext('2d');
+const videoEl = document.getElementById('videoEl');
+const filterCanvas = document.getElementById('filterCanvas');
+const fCtx = filterCanvas.getContext('2d', {willReadFrequently: true});
+
+let srcImg = null;          // 基準画像
+let allPts = [];            // ドット座標 + 初期色 + 現在色
+let animRaf = null;
+let isPlaying = false;
+let hasVideo = false;
+let currentPreset = 'normal';
+let syncMode = 'realtime';
+let currentBlend = {};      // x→ {r,g,b} 現在描画中の色（スローモード用）
+let presetStrength = 1.0;
+
+// ══════════════════════════════════════
+// PRESETS
+// ══════════════════════════════════════
+const PRESETS = {
+  normal:     { name:'ノーマル',        fn: (r,g,b)=>({r,g,b}) },
+  anime:      { name:'アニメ',          fn: animeColor },
+  cyberpunk:  { name:'サイバーパンク',  fn: cyberpunkColor },
+  film:       { name:'映画風',          fn: filmColor },
+  vintage:    { name:'ヴィンテージ',    fn: vintageColor },
+  watercolor: { name:'水彩',            fn: watercolorColor },
+  neon:       { name:'ネオン',          fn: neonColor },
+  infrared:   { name:'赤外線',          fn: infraredColor },
+  duotone:    { name:'デュオトーン',    fn: duotoneColor },
+  thermal:    { name:'サーモ',          fn: thermalColor },
+  xray:       { name:'Xレイ',           fn: xrayColor },
+  vaporwave:  { name:'Vaporwave',       fn: vaporwaveColor },
+  sketch:     { name:'スケッチ',        fn: sketchColor },
+  glitch:     { name:'グリッチ',        fn: glitchColor },
+};
+
+function mix(r1,g1,b1, r2,g2,b2, t){ return {r:r1+(r2-r1)*t|0, g:g1+(g2-g1)*t|0, b:b1+(b2-b1)*t|0}; }
+function clamp(v){return Math.min(255,Math.max(0,v|0));}
+function lum(r,g,b){return .2126*r+.7152*g+.0722*b;}
+
+function applyPreset(r,g,b){
+  const preset = PRESETS[currentPreset] || PRESETS.normal;
+  const res = preset.fn(r,g,b);
+  if(presetStrength>=.99) return res;
+  return { r:r+(res.r-r)*presetStrength|0, g:g+(res.g-g)*presetStrength|0, b:b+(res.b-b)*presetStrength|0 };
+}
+
+// アニメ: 色量子化 + 輪郭強調（セル塗り）
+function animeColor(r,g,b){
+  const steps = 5;
+  const qr = Math.round(r/255*steps)/steps*255;
+  const qg = Math.round(g/255*steps)/steps*255;
+  const qb = Math.round(b/255*steps)/steps*255;
+  const l = lum(qr,qg,qb);
+  const sat = 1.6;
+  return {
+    r: clamp(l+(qr-l)*sat),
+    g: clamp(l+(qg-l)*sat),
+    b: clamp(l+(qb-l)*sat)
+  };
+}
+// サイバーパンク: マゼンタ・シアン寄り
+function cyberpunkColor(r,g,b){
+  const l=lum(r,g,b);
+  return {r:clamp(l*.4+r*.6+60), g:clamp(g*.5+l*.1), b:clamp(l*.3+b*.7+80)};
+}
+// 映画風: ティール&オレンジ
+function filmColor(r,g,b){
+  const l=lum(r,g,b);
+  const warm=l>128;
+  if(warm) return {r:clamp(r*1.15+20), g:clamp(g*.92), b:clamp(b*.72)};
+  return {r:clamp(r*.72), g:clamp(g*.98+8), b:clamp(b*1.25+12)};
+}
+// ヴィンテージ: 褪色 + セピア
+function vintageColor(r,g,b){
+  const sr=clamp(r*.393+g*.769+b*.189);
+  const sg=clamp(r*.349+g*.686+b*.168);
+  const sb=clamp(r*.272+g*.534+b*.131);
+  return {r:clamp(sr*.8+r*.2+15), g:clamp(sg*.8+g*.2+5), b:clamp(sb*.7+b*.2)};
+}
+// 水彩: 低彩度+白浮き
+function watercolorColor(r,g,b){
+  const l=lum(r,g,b);
+  const sat=.55;
+  const white=.25;
+  return {
+    r:clamp((l+(r-l)*sat)*(1-white)+255*white),
+    g:clamp((l+(g-l)*sat)*(1-white)+255*white),
+    b:clamp((l+(b-l)*sat)*(1-white)+255*white),
+  };
+}
+// ネオン: 高輝度 + 強彩度
+function neonColor(r,g,b){
+  const l=lum(r,g,b);
+  const s=2.5;
+  const nr=clamp(l+(r-l)*s); const ng=clamp(l+(g-l)*s); const nb=clamp(l+(b-l)*s);
+  // glow boost
+  return {r:clamp(nr+(nr>180?40:0)), g:clamp(ng+(ng>180?40:0)), b:clamp(nb+(nb>180?40:0))};
+}
+// 赤外線: 緑→白、赤→黒
+function infraredColor(r,g,b){
+  const l=lum(r,g,b);
+  const ir = clamp(255-r+g*.5);
+  return {r:clamp(255-l*.8), g:clamp(ir), b:clamp(l*.3)};
+}
+// デュオトーン: 2色グラデ
+function duotoneColor(r,g,b){
+  const l=lum(r,g,b)/255;
+  const c1={r:15,g:240,b:180}; // cyan-green
+  const c2={r:180,g:20,b:255}; // purple
+  return {r:clamp(c1.r+(c2.r-c1.r)*l), g:clamp(c1.g+(c2.g-c1.g)*l), b:clamp(c1.b+(c2.b-c1.b)*l)};
+}
+// サーモ: 青→緑→赤 heatmap
+function thermalColor(r,g,b){
+  const l=lum(r,g,b)/255;
+  if(l<.33) return {r:0, g:clamp(l*3*255), b:clamp((1-l*3)*255)};
+  if(l<.66) return {r:clamp((l-.33)*3*255), g:255, b:0};
+  return {r:255, g:clamp((1-(l-.66)*3)*255), b:0};
+}
+// Xレイ: 反転グレー
+function xrayColor(r,g,b){
+  const l=255-lum(r,g,b)|0;
+  const bl=clamp(l+20);
+  return {r:clamp(l*.8), g:clamp(l*.9), b:bl};
+}
+// Vaporwave: ピンク・紫
+function vaporwaveColor(r,g,b){
+  const l=lum(r,g,b);
+  return {r:clamp(l*.6+r*.4+80), g:clamp(g*.4+l*.2), b:clamp(l*.5+b*.5+100)};
+}
+// スケッチ: エッジのみ白黒
+function sketchColor(r,g,b){
+  const l=lum(r,g,b);
+  const v=l>100?255:clamp(l*1.5);
+  return {r:v,g:v,b:v};
+}
+// グリッチ: チャンネルシフト (per-point random)
+function glitchColor(r,g,b){
+  const shift=Math.random()>.85?Math.random()*60-30:0;
+  return {r:clamp(r+shift), g:clamp(g-shift*.5), b:clamp(b+shift*.3)};
+}
+
+// ══════════════════════════════════════
+// UI BINDINGS
+// ══════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+function sv(sliderId, displayId, suffix=''){
+  const s=$(sliderId),d=$(displayId);
+  d.innerText=parseFloat(s.value).toFixed(s.step&&s.step.includes('.')?s.step.split('.')[1].length:0)+suffix;
+  s.addEventListener('input',e=>{d.innerText=parseFloat(e.target.value).toFixed(s.step&&s.step.includes('.')?s.step.split('.')[1].length:0)+suffix;});
+}
+sv('stepR','stepVal','px');
+sv('threshR','threshVal','');
+sv('sizeR','sizeVal','');
+sv('blendSpeed','blendSpeedVal','');
+sv('briBoost','briBoostVal','');
+sv('satBoost','satBoostVal','');
+$('presetStrength').addEventListener('input',e=>{presetStrength=parseFloat(e.target.value);$('presetStrengthVal').innerText=Math.round(presetStrength*100)+'%';});
+
+$('drawStyle').addEventListener('change',()=>$('charGrp').style.display=$('drawStyle').value==='text'?'flex':'none');
+
+// Preset buttons
+document.getElementById('presetList').addEventListener('click',e=>{
+  const btn=e.target.closest('.preset-btn');if(!btn)return;
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPreset=btn.dataset.preset;
+  $('atmosBadge').innerText=PRESETS[currentPreset].name;
+  if(allPts.length) redrawDots();
+});
+
+// Sync mode
+document.querySelectorAll('.sync-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.sync-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');syncMode=btn.dataset.sync;
+    currentBlend={};
+  });
+});
+
+// ══════════════════════════════════════
+// IMAGE + VIDEO LOAD
+// ══════════════════════════════════════
+$('imgLoad').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{const img=new Image();img.onload=()=>{srcImg=img;$('generateBtn').disabled=false;setStatus('画像を読み込みました。「ドット生成」を押してください。');};img.src=ev.target.result;};
+  rd.readAsDataURL(f);
+});
+
+$('vidLoad').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const url=URL.createObjectURL(f);
+  videoEl.src=url;
+  videoEl.load();
+  videoEl.onloadedmetadata=()=>{
+    hasVideo=true;$('transportCard').style.display='block';
+    $('timeDuration').innerText=fmtTime(videoEl.duration);
+    $('timelineBar').max=videoEl.duration;
+    setStatus('動画を読み込みました。まず画像でドットを生成してからカメレオン再生してください。');
+  };
+});
+
+// ══════════════════════════════════════
+// GENERATE DOTS
+// ══════════════════════════════════════
+$('generateBtn').addEventListener('click', generateDots);
+
+async function generateDots(){
+  if(!srcImg)return;
+  cancelAnimationFrame(animRaf);isPlaying=false;updatePlayBtn();
+  showLoading('ドット生成中...');setStatus('解析中...');
+
+  await sleep(20);
+
+  const maxD=900;
+  let sc=(srcImg.width>maxD||srcImg.height>maxD)?(srcImg.width>srcImg.height?maxD/srcImg.width:maxD/srcImg.height):1;
+  dotCanvas.width=Math.round(srcImg.width*sc);
+  dotCanvas.height=Math.round(srcImg.height*sc);
+
+  // draw to filter canvas for reading
+  filterCanvas.width=dotCanvas.width;filterCanvas.height=dotCanvas.height;
+  fCtx.clearRect(0,0,filterCanvas.width,filterCanvas.height);
+  fCtx.drawImage(srcImg,0,0,dotCanvas.width,dotCanvas.height);
+  const imgD=fCtx.getImageData(0,0,dotCanvas.width,dotCanvas.height);
+
+  const step=parseFloat($('stepR').value)||2;
+  allPts=extractPoints(imgD,step);
+  currentBlend={};
+
+  // initial draw
+  ctx.clearRect(0,0,dotCanvas.width,dotCanvas.height);
+  drawAllDots(allPts.map(p=>({...p,dr:p.r,dg:p.g,db:p.b})));
+
+  hideLoading();
+  setStatus(`生成完了: ${allPts.length}ドット — 動画を読み込んでカメレオン再生！`);
+  $('saveFrameBtn').disabled=false;
+
+  if(hasVideo){$('transportCard').style.display='block';}
+}
+
+// ══════════════════════════════════════
+// EXTRACT POINTS
+// ══════════════════════════════════════
+function extractPoints(imgD,step){
+  const{width:w,height:h,data:d}=imgD;
+  const pts=[];
+  const tm=$('targetMode').value;
+  const thresh=parseFloat($('threshR').value)||15;
+
+  function gl(kx,ky){
+    if(kx<0||kx>=w||ky<0||ky>=h)return 255;
+    const i=(ky*w+kx)*4;if(d[i+3]===0)return 255;
+    return .2126*d[i]+.7152*d[i+1]+.0722*d[i+2];
+  }
+
+  for(let y=0;y<h;y+=step){
+    for(let x=0;x<w;x+=step){
+      const ix=Math.floor(x),iy=Math.floor(y);
+      if(ix>=w||iy>=h)continue;
+      const i=(iy*w+ix)*4;
+      if(d[i+3]===0)continue;
+      if(d[i]>=253&&d[i+1]>=253&&d[i+2]>=253)continue;
+      const r=d[i],g=d[i+1],b=d[i+2];
+      const cl=gl(ix,iy);
+
+      if(tm==='ultraEdge'){
+        const l00=gl(ix-1,iy-1),l10=gl(ix,iy-1),l20=gl(ix+1,iy-1);
+        const l01=gl(ix-1,iy),l21=gl(ix+1,iy);
+        const l02=gl(ix-1,iy+1),l12=gl(ix,iy+1),l22=gl(ix+1,iy+1);
+        const gX=(l20+2*l21+l22)-(l00+2*l01+l02);
+        const gY=(l02+2*l12+l22)-(l00+2*l10+l20);
+        if(Math.sqrt(gX*gX+gY*gY)+Math.abs((l10+l01+l21+l12)-4*cl)*.75<thresh)continue;
+      }else if(tm==='edge'){
+        if(Math.sqrt((gl(ix+1,iy)-cl)**2+(gl(ix,iy+1)-cl)**2)<thresh)continue;
+      }
+
+      // apply preset to initial color
+      const pc=applyPreset(r,g,b);
+      pts.push({x,y,r:r,g:g,b:b, dr:pc.r,dg:pc.g,db:pc.b, idx:pts.length});
+    }
+  }
+  return pts;
+}
+
+// ══════════════════════════════════════
+// DRAW DOTS
+// ══════════════════════════════════════
+function drawAllDots(pts){
+  ctx.clearRect(0,0,dotCanvas.width,dotCanvas.height);
+  const style=$('drawStyle').value;
+  const step=parseFloat($('stepR').value)||2;
+  const manSize=parseFloat($('sizeR').value)||1;
+  const sz=step<=1?.5:step<=2?step*.65:step*.55;
+  const finalSz=sz*manSize;
+  const charList=$('charText').value||'@#*';
+
+  if(style==='text'){ctx.textAlign='center';ctx.textBaseline='middle';}
+
+  pts.forEach((pt,ci)=>{
+    ctx.fillStyle=`rgb(${pt.dr},${pt.dg},${pt.db})`;
+    const x=pt.x,y=pt.y;
+    switch(style){
+      case 'dot':
+        ctx.beginPath();ctx.arc(x,y,finalSz,0,Math.PI*2);ctx.fill();break;
+      case 'square':
+        ctx.fillRect(x-finalSz,y-finalSz,finalSz*2,finalSz*2);break;
+      case 'diamond':
+        ctx.beginPath();ctx.moveTo(x,y-finalSz*1.2);ctx.lineTo(x+finalSz,y);ctx.lineTo(x,y+finalSz*1.2);ctx.lineTo(x-finalSz,y);ctx.closePath();ctx.fill();break;
+      case 'text':
+        ctx.font=`bold ${finalSz*2.2}px monospace`;
+        ctx.fillText(charList[ci%charList.length],x,y);break;
+      case 'cross':
+        ctx.fillRect(x-finalSz*.35,y-finalSz*1.3,finalSz*.7,finalSz*2.6);
+        ctx.fillRect(x-finalSz*1.3,y-finalSz*.35,finalSz*2.6,finalSz*.7);break;
+      case 'star':
+        drawStar(ctx,x,y,5,finalSz*.55,finalSz*1.2);ctx.fill();break;
+    }
+  });
+}
+
+function drawStar(ctx,cx,cy,spikes,inner,outer){
+  ctx.beginPath();let rot=Math.PI/2*3;const step=Math.PI/spikes;
+  ctx.moveTo(cx,cy-outer);
+  for(let i=0;i<spikes;i++){
+    ctx.lineTo(cx+Math.cos(rot)*outer,cy+Math.sin(rot)*outer);rot+=step;
+    ctx.lineTo(cx+Math.cos(rot)*inner,cy+Math.sin(rot)*inner);rot+=step;
+  }
+  ctx.lineTo(cx,cy-outer);ctx.closePath();
+}
+
+// ══════════════════════════════════════
+// REDRAW with current preset (static)
+// ══════════════════════════════════════
+function redrawDots(){
+  const pts=allPts.map(p=>{
+    const pc=applyPreset(p.r,p.g,p.b);
+    return{...p,dr:pc.r,dg:pc.g,db:pc.b};
+  });
+  drawAllDots(pts);
+}
+
+// ══════════════════════════════════════
+// CHAMELEON — sample color from video
+// ══════════════════════════════════════
+let lastVideoTime=-1;
+let pulseT=0;
+
+function sampleVideoColor(pt){
+  const vw=filterCanvas.width,vh=filterCanvas.height;
+  const sx=Math.floor(pt.x/dotCanvas.width*vw);
+  const sy=Math.floor(pt.y/dotCanvas.height*vh);
+  const sm=$('samplingMode').value;
+
+  if(sm==='point'){
+    const i=(Math.min(vh-1,sy)*vw+Math.min(vw-1,sx))*4;
+    const pd=fCtx.getImageData(sx,sy,1,1).data;
+    return{r:pd[0],g:pd[1],b:pd[2]};
+  }else if(sm==='area'){
+    const r=2;
+    const pd=fCtx.getImageData(Math.max(0,sx-r),Math.max(0,sy-r),r*2+1,r*2+1);
+    let sr=0,sg=0,sb=0,cnt=0;
+    for(let i=0;i<pd.data.length;i+=4){sr+=pd.data[i];sg+=pd.data[i+1];sb+=pd.data[i+2];cnt++;}
+    return{r:sr/cnt|0,g:sg/cnt|0,b:sb/cnt|0};
+  }else{
+    // weighted — center weighted
+    const r=3;
+    const pd=fCtx.getImageData(Math.max(0,sx-r),Math.max(0,sy-r),r*2+1,r*2+1);
+    let sr=0,sg=0,sb=0,sw=0;
+    let ii=0;
+    for(let ky=-r;ky<=r;ky++)for(let kx=-r;kx<=r;kx++){
+      const w=1/(1+kx*kx+ky*ky);
+      sr+=pd.data[ii]*w;sg+=pd.data[ii+1]*w;sb+=pd.data[ii+2]*w;sw+=w;ii+=4;
+    }
+    return{r:sr/sw|0,g:sg/sw|0,b:sb/sw|0};
+  }
+}
+
+function applyBoosts(r,g,b){
+  const bri=parseFloat($('briBoost').value)||0;
+  const sat=parseFloat($('satBoost').value)||0;
+  let nr=clamp(r+bri),ng=clamp(g+bri),nb=clamp(b+bri);
+  if(sat!==0){const l=lum(nr,ng,nb);const sf=(sat+100)/100;nr=clamp(l+(nr-l)*sf);ng=clamp(l+(ng-l)*sf);nb=clamp(l+(nb-l)*sf);}
+  return{r:nr,g:ng,b:nb};
+}
+
+function chameleonFrame(){
+  if(!hasVideo||!allPts.length)return;
+
+  // capture current video frame
+  fCtx.drawImage(videoEl,0,0,filterCanvas.width,filterCanvas.height);
+
+  const blend=parseFloat($('blendSpeed').value)||.08;
+  pulseT+=.05;
+
+  const ptsWithColor=allPts.map((pt,i)=>{
+    // get raw video color at this dot's position
+    let{r,g,b}=sampleVideoColor(pt);
+
+    // apply boosts
+    const boosted=applyBoosts(r,g,b);r=boosted.r;g=boosted.g;b=boosted.b;
+
+    // apply atmosphere preset
+    const pc=applyPreset(r,g,b);
+    let fr=pc.r,fg=pc.g,fb=pc.b;
+
+    if(syncMode==='slow'){
+      const key=i;
+      const prev=currentBlend[key]||{r:pt.r,g:pt.g,b:pt.b};
+      fr=prev.r+(fr-prev.r)*blend|0;
+      fg=prev.g+(fg-prev.g)*blend|0;
+      fb=prev.b+(fb-prev.b)*blend|0;
+      currentBlend[key]={r:fr,g:fg,b:fb};
+    }else if(syncMode==='snap'){
+      // snap every Nth frame based on beat-like interval
+      // just use raw (already set)
+    }else if(syncMode==='pulse'){
+      const pulse=.5+.5*Math.sin(pulseT+i*.01);
+      const orig=applyPreset(pt.r,pt.g,pt.b);
+      fr=orig.r+(fr-orig.r)*pulse|0;
+      fg=orig.g+(fg-orig.g)*pulse|0;
+      fb=orig.b+(fb-orig.b)*pulse|0;
+    }
+
+    return{...pt,dr:fr,dg:fg,db:fb};
+  });
+
+  drawAllDots(ptsWithColor);
+
+  // update timeline
+  $('timelineBar').value=videoEl.currentTime;
+  $('timeCurrent').innerText=fmtTime(videoEl.currentTime);
+
+  if(isPlaying) animRaf=requestAnimationFrame(chameleonFrame);
+}
+
+// ══════════════════════════════════════
+// TRANSPORT CONTROLS
+// ══════════════════════════════════════
+$('playBtn').addEventListener('click',()=>{
+  if(!hasVideo){alert('動画を読み込んでください');return;}
+  if(!allPts.length){alert('先にドットを生成してください');return;}
+  isPlaying=!isPlaying;
+  updatePlayBtn();
+  if(isPlaying){
+    videoEl.playbackRate=parseFloat($('playbackSpeed').value)||1;
+    videoEl.play();
+    filterCanvas.width=dotCanvas.width;filterCanvas.height=dotCanvas.height;
+    chameleonFrame();
+  }else{
+    videoEl.pause();cancelAnimationFrame(animRaf);
+  }
+});
+
+$('rewindBtn').addEventListener('click',()=>{videoEl.currentTime=0;$('timelineBar').value=0;$('timeCurrent').innerText='0:00';if(!isPlaying)chameleonFrame();});
+$('stepFrameBtn').addEventListener('click',()=>{if(videoEl.readyState>=2){videoEl.currentTime+=1/30;setTimeout(()=>chameleonFrame(),50);}});
+$('playbackSpeed').addEventListener('change',e=>{videoEl.playbackRate=parseFloat(e.target.value);});
+$('timelineBar').addEventListener('input',e=>{videoEl.currentTime=parseFloat(e.target.value);if(!isPlaying){filterCanvas.width=dotCanvas.width;filterCanvas.height=dotCanvas.height;chameleonFrame();}});
+
+videoEl.addEventListener('ended',()=>{isPlaying=false;updatePlayBtn();cancelAnimationFrame(animRaf);});
+
+function updatePlayBtn(){
+  const btn=$('playBtn');
+  btn.innerText=isPlaying?'⏸ 一時停止':'▶ 再生';
+  btn.style.background=isPlaying?'#ef4444':'#10b981';
+  btn.style.color='#fff';
+}
+
+// ══════════════════════════════════════
+// SAVE
+// ══════════════════════════════════════
+$('saveFrameBtn').addEventListener('click',()=>{
+  const a=document.createElement('a');
+  a.download=`tenten_${currentPreset}_${Date.now()}.png`;
+  a.href=dotCanvas.toDataURL('image/png');a.click();
+});
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function setStatus(msg){$('statusBar').innerHTML=msg;}
+function showLoading(msg){$('loadingMsg').innerText=msg;$('loadingOverlay').classList.add('show');}
+function hideLoading(){$('loadingOverlay').classList.remove('show');}
+function fmtTime(s){const m=s/60|0;return `${m}:${String(s%60|0).padStart(2,'0')}`;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// init
+$('atmosBadge').innerText='ノーマル';
+setStatus('画像または動画を選択してください。画像→ドット生成→動画読込→カメレオン再生の順で使います。');
+</script>
+</body>
+</html>

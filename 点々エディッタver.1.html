@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像ドットアート生成ツール</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --panel-color: #ffffff;
+            --accent-color: #4a90e2;
+            --text-color: #333333;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 5px; }
+        p { font-size: 0.9rem; color: #666; margin-top: 0; margin-bottom: 20px; }
+        .container {
+            width: 100%;
+            max-width: 950px;
+            background: var(--panel-color);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #fafafa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .control-group label { margin-bottom: 5px; }
+        .control-group input[type="range"], .control-group input[type="number"], .control-group select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            grid-column: 1 / -1;
+        }
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+            flex: 1;
+        }
+        button:hover { background-color: #357abd; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #canvas-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #eef2f5;
+            border-radius: 8px;
+            overflow: hidden;
+            padding: 10px;
+            box-sizing: border-box;
+            min-height: 300px;
+        }
+        canvas {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background: #ffffff;
+            max-width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+        #status { text-align: center; font-size: 0.85rem; margin-top: 10px; color: #888; font-weight: bold; }
+        
+        #textarea-wrapper {
+            margin-top: 15px;
+            width: 100%;
+            display: none;
+        }
+        #textarea-wrapper textarea {
+            width: 100%;
+            height: 120px;
+            box-sizing: border-box;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>画像ドットアート生成ツール（背景バグ修正版）</h1>
+    <p>白黒画像の背景を拾ってしまう問題を修正しました。線だけに綺麗に点を打ちます。</p>
+
+    <div class="container">
+        <div class="controls">
+            <div class="control-group">
+                <label for="imageLoader">① 画像を選択</label>
+                <input type="file" id="imageLoader" accept="image/*">
+            </div>
+            <div class="control-group">
+                <label for="targetMode">② 抽出ターゲット</label>
+                <select id="targetMode">
+                    <option value="edge" selected>画像の「輪郭（エッジ）」だけ</option>
+                    <option value="all">背景も含む「画像全体」</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="colorMode">③ 描画カラー</label>
+                <select id="colorMode">
+                    <option value="black">単色（ダークグレー）</option>
+                    <option value="color">画像の色を自動検知（カラー）</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="stepRange">④ 点の間隔（左ほど超細密ドット）</label>
+                <select id="stepRange">
+                    <option value="1">1ピクセルおき（超極細・最も細かい）</option>
+                    <option value="2" selected>2ピクセルおき（極細）</option>
+                    <option value="3">3ピクセルおき（普通）</option>
+                    <option value="5">5ピクセルおき（粗め）</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="dotSize">⑤ 点の大きさ（半径）</label>
+                <input type="range" id="dotSize" min="0.3" max="4" value="1.2" step="0.1">
+            </div>
+            <div class="control-group">
+                <label for="threshold">⑥ 輪郭の感度（小さいほど細かく拾う）</label>
+                <input type="range" id="threshold" min="5" max="100" value="25" step="5">
+            </div>
+            <div class="control-group">
+                <label for="maxLines">⑦ コピペ最大データ行数（0で無制限）</label>
+                <input type="number" id="maxLines" min="0" value="2000">
+            </div>
+            <div class="btn-group">
+                <button id="restartBtn" disabled>設定を反映して再生成</button>
+                <button id="copyBtn" disabled>点データ（文字）を出力してコピー</button>
+            </div>
+        </div>
+
+        <div id="canvas-wrapper">
+            <canvas id="imageCanvas"></canvas>
+        </div>
+        <div id="status">画像を選択してください</div>
+
+        <div id="textarea-wrapper">
+            <label style="font-size:0.8rem; font-weight:bold; color:#555;">自動コピーが失敗した場合は、下の枠内を全選択（Ctrl+A）してコピー（Ctrl+C）してください：</label>
+            <textarea id="outputData" readonly onclick="this.select();"></textarea>
+        </div>
+    </div>
+
+    <script>
+        const imageLoader = document.getElementById('imageLoader');
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+        const targetModeSelect = document.getElementById('targetMode');
+        const colorModeSelect = document.getElementById('colorMode');
+        const stepRange = document.getElementById('stepRange');
+        const dotSize = document.getElementById('dotSize');
+        const thresholdInput = document.getElementById('threshold');
+        const maxLinesInput = document.getElementById('maxLines');
+        const copyBtn = document.getElementById('copyBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const statusText = document.getElementById('status');
+        const textareaWrapper = document.getElementById('textarea-wrapper');
+        const outputData = document.getElementById('outputData');
+
+        let animationFrameId;
+        let currentImg = null;
+        let allPoints = []; 
+
+        imageLoader.addEventListener('change', handleImage, false);
+        restartBtn.addEventListener('click', () => { if(currentImg) processImage(currentImg); });
+        copyBtn.addEventListener('click', copyPointsToClipboard);
+
+        function handleImage(e) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    currentImg = img;
+                    restartBtn.disabled = false;
+                    processImage(img);
+                }
+                img.src = event.target.result;
+            }
+            if(e.target.files[0]) {
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        }
+
+        function processImage(img) {
+            cancelAnimationFrame(animationFrameId);
+            copyBtn.disabled = true;
+            textareaWrapper.style.display = 'none'; 
+            statusText.innerText = "画像を解析中...";
+
+            const maxW = 700;
+            const maxH = 550;
+            let scale = 1;
+
+            if (img.width > maxW || img.height > maxH) {
+                const scaleW = maxW / img.width;
+                const scaleH = maxH / img.height;
+                scale = Math.min(scaleW, scaleH);
+            }
+
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            allPoints = extractPoints(imgData);
+            
+            let drawPoints = [...allPoints];
+            shuffleArray(drawPoints);
+
+            statusText.innerText = `解析完了: ${allPoints.length} 個の点を計算しました。描画中...`;
+            animatePoints(drawPoints);
+        }
+
+        function extractPoints(imgData) {
+            const w = imgData.width;
+            const h = imgData.height;
+            const d = imgData.data;
+            const points = [];
+            const targetMode = targetModeSelect.value;
+            const step = parseInt(stepRange.value); 
+            const thresh = parseInt(thresholdInput.value);
+
+            function getPixelInfo(x, y) {
+                if (x < 0 || x >= w || y < 0 || y >= h) return { lum: 255, r: 255, g: 255, b: 255 };
+                const i = (y * w + x) * 4;
+                // アルファチャンネル（透明度）が0なら完全な白として扱う
+                if (d[i+3] === 0) return { lum: 255, r: 255, g: 255, b: 255 };
+                return { lum: 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2], r: d[i], g: d[i+1], b: d[i+2] };
+            }
+
+            for (let y = 0; y < h; y += step) {
+                for (let x = 0; x < w; x += step) {
+                    const center = getPixelInfo(x, y);
+
+                    // 白、あるいは極めて白に近いグレー（輝度240以上）は背景とみなして完全にスキップ
+                    if (center.lum > 240) continue;
+
+                    if (targetMode === 'all') {
+                        // 【全体モード】純粋な黒～色のついている部分だけを拾う
+                        points.push({ x: x, y: y, color: `rgb(${center.r},${center.g},${center.b})` });
+                    } else {
+                        // 【輪郭モード】隣り合うピクセルとの変化の大きさを計算
+                        const right = getPixelInfo(x + 1, y);
+                        const bottom = getPixelInfo(x, y + 1);
+                        const hGrad = right.lum - center.lum;
+                        const vGrad = bottom.lum - center.lum;
+                        const magnitude = Math.sqrt(hGrad * hGrad + vGrad * vGrad);
+
+                        // 境界線であり、かつある程度濃い色（背景のゴミを拾わない）
+                        if (magnitude > thresh) {
+                            points.push({ x: x, y: y, color: `rgb(${center.r},${center.g},${center.b})` });
+                        }
+                    }
+                }
+            }
+            return points;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function animatePoints(points) {
+            let index = 0;
+            const isColor = (colorModeSelect.value === 'color');
+            
+            const pointsPerFrame = Math.max(25, Math.floor(points.length / 100)); 
+            const radius = parseFloat(dotSize.value);
+
+            function draw() {
+                for (let i = 0; i < pointsPerFrame; i++) {
+                    if (index >= points.length) {
+                        statusText.innerText = `描画完了！ 総ドット数: ${allPoints.length} 個`;
+                        copyBtn.disabled = false; 
+                        return;
+                    }
+
+                    const pt = points[index];
+                    ctx.fillStyle = isColor ? pt.color : '#222222'; 
+
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    index++;
+                }
+                animationFrameId = requestAnimationFrame(draw);
+            }
+            draw();
+        }
+
+        function copyPointsToClipboard() {
+            if (allPoints.length === 0) return;
+
+            const maxLines = parseInt(maxLinesInput.value) || 0;
+            let pointsToCopy = [...allPoints];
+
+            if (maxLines > 0 && pointsToCopy.length > maxLines) {
+                const sampledPoints = [];
+                const step = pointsToCopy.length / maxLines;
+                for (let i = 0; i < maxLines; i++) {
+                    const index = Math.floor(i * step);
+                    sampledPoints.push(pointsToCopy[index]);
+                }
+                pointsToCopy = sampledPoints;
+            }
+
+            let textData = "X,Y\n"; 
+            textData += pointsToCopy.map(pt => `${pt.x},${pt.y}`).join("\n");
+
+            outputData.value = textData;
+            textareaWrapper.style.display = 'block';
+
+            navigator.clipboard.writeText(textData).then(() => {
+                alert(`自動コピー成功！\nデータ行数: ${pointsToCopy.length} 行\n\nクリップボードに保存されました。`);
+            }).catch(err => {
+                alert(`データ（${pointsToCopy.length}行）を作成しました！\n下のテキスト枠からコピー（Ctrl+C）してください。`);
+            });
+        }
+    </script>
+</body>
+</html>

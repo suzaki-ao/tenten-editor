@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>点々エディッタver.13</title>
+    <style>
+        :root {
+            --bg-color: #111827;
+            --panel-color: #1f2937;
+            --accent-color: #10b981;
+            --text-color: #f9fafb;
+            --control-bg: #374151;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { font-size: 1.6rem; margin-bottom: 5px; color: var(--accent-color); }
+        p { font-size: 0.9rem; color: #9ca3af; margin-top: 0; margin-bottom: 20px; }
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            background: var(--panel-color);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            box-sizing: border-box;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            background: var(--control-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #4b5563;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .control-group label { margin-bottom: 6px; color: #e5e7eb; }
+        .control-group input[type="text"], .control-group input[type="range"], .control-group input[type="number"], .control-group select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            background: #1f2937;
+            color: #fff;
+        }
+        .control-group input[type="range"] { padding: 0; }
+        
+        .step-input-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .step-input-container input[type="range"] { flex: 1; }
+        .step-input-container input[type="number"] {
+            width: 75px !important;
+            text-align: center;
+        }
+
+        .bg-color-picker-wrapper {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .bg-color-picker-wrapper input[type="color"] {
+            padding: 0;
+            width: 40px;
+            height: 34px;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            background: none;
+            cursor: pointer;
+        }
+
+        .sub-group {
+            margin-left: 10px;
+            border-left: 2px solid #4b5563;
+            padding-left: 10px;
+            margin-top: 5px;
+        }
+        
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+            grid-column: 1 / -1;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 14px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 150px;
+        }
+        button:hover { background-color: #1d4ed8; transform: translateY(-1px); }
+        button#saveBtn { background-color: #ea580c; }
+        button#saveBtn:hover { background-color: #c2410c; }
+        button#copyBtn { background-color: #10b981; }
+        button#copyBtn:hover { background-color: #059669; }
+        button:disabled { background-color: #4b5563; color: #9ca3af; cursor: not-allowed; transform: none; }
+        
+        #canvas-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 12px;
+            overflow: hidden;
+            padding: 15px;
+            box-sizing: border-box;
+            min-height: 450px;
+            transition: background 0.1s;
+        }
+        .checkerboard-bg {
+            background-color: #090d16;
+            background-image: linear-gradient(45deg, #151d30 25%, transparent 25%), 
+                              linear-gradient(-45deg, #151d30 25%, transparent 25%), 
+                              linear-gradient(45deg, transparent 75%, #151d30 75%), 
+                              linear-gradient(-45deg, transparent 75%, #151d30 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        canvas {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            background: transparent;
+            max-width: 100%;
+            max-height: 75vh;
+            width: auto !important;
+            height: auto !important;
+            aspect-ratio: auto;
+            object-fit: contain;
+        }
+        #status { text-align: center; font-size: 0.9rem; margin-top: 12px; color: var(--accent-color); font-weight: bold; }
+        #textarea-wrapper {
+            margin-top: 20px;
+            width: 100%;
+            display: none;
+        }
+        #textarea-wrapper textarea {
+            width: 100%;
+            height: 180px;
+            box-sizing: border-box;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            resize: vertical;
+            background: #111827;
+            color: #10b981;
+        }
+
+        .mask-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+        .mask-tab {
+            flex: 1;
+            padding: 6px 4px;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            background: #1f2937;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-align: center;
+            transition: all 0.2s;
+            min-width: unset;
+        }
+        .mask-tab.active {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+        .mask-tab:hover { transform: none; background-color: #374151; }
+        .mask-tab.active:hover { background-color: #1d4ed8; }
+
+        .mask-panel { display: none; }
+        .mask-panel.active { display: block; }
+
+        .rotation-display {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #10b981;
+            margin-top: 3px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .grid-2 label, .grid-3 label {
+            color: #9ca3af;
+            display: block;
+            margin-bottom: 3px;
+            font-size: 0.78rem;
+        }
+        .rotate-btn-row {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+        }
+        .rotate-btn-row button {
+            flex: 1;
+            min-width: unset;
+            padding: 7px 4px;
+            font-size: 0.8rem;
+            background: #374151;
+        }
+        .rotate-btn-row button:hover { background: #4b5563; transform: none; }
+    </style>
+</head>
+<body>
+
+    <h1>点々エディッタver.13</h1>
+    <p>外部ツール連携用：座標に加え「配置した文字」と「RGBカラー」をすべて含めて書き出します。</p>
+
+    <div class="container">
+        <div class="controls">
+            <div class="control-group">
+                <label for="imageLoader">① 画像を選択</label>
+                <input type="file" id="imageLoader" accept="image/*">
+            </div>
+            
+            <div class="control-group">
+                <label for="drawStyle">② 描画スタイル</label>
+                <select id="drawStyle">
+                    <option value="dot" selected>標準：丸いドット（点）</option>
+                    <option value="text">特殊：文字（アスキーアート風）</option>
+                    <option value="icon">超特殊：カスタムアイコン（スタンプ風）</option>
+                </select>
+            </div>
+            
+            <div class="control-group" id="charInputGroup" style="opacity: 0.5;">
+                <label for="charText">└ 描画用の文字（ループされます）</label>
+                <input type="text" id="charText" value="@A/1#*+" placeholder="例: @A/1">
+            </div>
+
+            <div class="control-group" id="iconInputGroup" style="display: none;">
+                <label for="iconLoader">└ 描画用のアイコン画像（複数選択可）</label>
+                <input type="file" id="iconLoader" accept="image/*" multiple>
+                <span id="iconCountLabel" style="font-size:0.75rem; color:#9ca3af; margin-top:4px;">未選択（デフォルトの形状が使われます）</span>
+            </div>
+
+            <div class="control-group">
+                <label for="targetMode">③ 抽出ターゲット</label>
+                <select id="targetMode">
+                    <option value="all">背景も含む画像全体</option>
+                    <option value="edge">通常の輪郭検知システム</option>
+                    <option value="ultraEdge" selected>超輪郭検知システム</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="colorMode">④ 描画カラー設定</label>
+                <select id="colorMode">
+                    <option value="outlineColor" selected>カラーに輪郭だけ塗るモード</option>
+                    <option value="hyperColor">超カラー再現モード</option>
+                    <option value="color">通常カラー</option>
+                    <option value="monoAdjustment">白黒モード</option>
+                    <option value="black">単色モード</option>
+                </select>
+                <div id="monoConfigArea" class="sub-group" style="display: none;">
+                    <label for="monoContrast" style="color:#9ca3af; display:block; margin-bottom:4px;">└ 白黒コントラスト微調整</label>
+                    <div class="step-input-container">
+                        <input type="range" id="monoContrast" min="-100" max="100" value="0" step="5">
+                        <input type="number" id="monoContrastNum" min="-100" max="100" value="0" step="5" style="width:60px!important;">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="stepRange">⑤ 点・文字の間隔（0.1〜12px）</label>
+                <div class="step-input-container">
+                    <input type="range" id="stepRange" min="0.1" max="12" value="1.2" step="0.1">
+                    <input type="number" id="stepNumber" min="0.1" max="12" value="1.2" step="0.1" placeholder="1.2">
+                </div>
+                <span id="densityLabel" style="font-size:0.75rem; color:#10b981; margin-top:4px; text-align:right;">間隔: 1.2px</span>
+            </div>
+
+            <div class="control-group">
+                <label for="dotSize">⑥ サイズ設定（自動推奨）</label>
+                <select id="dotSize">
+                    <option value="auto" selected>自動モード</option>
+                    <option value="0.1">固定：超微小 (0.1)</option>
+                    <option value="0.3">固定：極小 (0.3)</option>
+                    <option value="0.5">固定：微小 (0.5)</option>
+                    <option value="1.0">固定：小 (1.0)</option>
+                    <option value="1.8">固定：中 (1.8)</option>
+                    <option value="3.0">固定：大 (3.0)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="threshold">⑦ 輪郭検知（数値を下げると高感度）</label>
+                <div class="step-input-container">
+                    <input type="range" id="threshold" min="0.1" max="100" value="15" step="0.1">
+                    <input type="number" id="thresholdNum" min="0.1" max="100" value="15" step="0.1" style="width:75px!important; text-align:center;">
+                </div>
+            </div>
+
+            <!-- ⑧ 型抜き設定（タブ切替） -->
+            <div class="control-group" style="grid-column: span 1;">
+                <label>⑧ 型抜き（切り切り）設定</label>
+                <select id="maskMode">
+                    <option value="none" selected>型抜きなし</option>
+                    <option value="char">文字の形に型抜き</option>
+                    <option value="image">画像の形に型抜き</option>
+                </select>
+
+                <!-- 文字型抜きパネル -->
+                <div id="maskCharPanel" class="sub-group" style="display:none; margin-top:8px;">
+                    <div style="margin-bottom:6px;">
+                        <label for="maskChar" style="color:#9ca3af; display:block; margin-bottom:4px;">└ 型抜き文字列</label>
+                        <input type="text" id="maskChar" value="HELLO" placeholder="例: ART">
+                    </div>
+                    <div class="grid-3">
+                        <div>
+                            <label for="maskOffsetX">位置(X)</label>
+                            <input type="number" id="maskOffsetX" value="0" step="5">
+                        </div>
+                        <div>
+                            <label for="maskOffsetY">位置(Y)</label>
+                            <input type="number" id="maskOffsetY" value="0" step="5">
+                        </div>
+                        <div>
+                            <label for="maskScale">倍率(%)</label>
+                            <input type="number" id="maskScale" value="100" min="10" max="500" step="5">
+                        </div>
+                    </div>
+                    <!-- 回転スライダー -->
+                    <div style="margin-top:8px;">
+                        <label style="color:#9ca3af; display:block; margin-bottom:4px;">回転角度</label>
+                        <div class="step-input-container">
+                            <input type="range" id="maskRotation" min="-180" max="180" value="0" step="1">
+                            <input type="number" id="maskRotationNum" min="-180" max="180" value="0" step="1" style="width:65px!important; text-align:center;">
+                        </div>
+                        <div class="rotation-display" id="rotationDisplay">0°</div>
+                        <!-- 素早い回転ボタン -->
+                        <div class="rotate-btn-row">
+                            <button onclick="setRotation(-90)">↺ -90°</button>
+                            <button onclick="setRotation(0)">⬛ 0°</button>
+                            <button onclick="setRotation(90)">↻ +90°</button>
+                            <button onclick="setRotation(180)">↕ 180°</button>
+                        </div>
+                        <!-- 上下左右反転 -->
+                        <div class="rotate-btn-row" style="margin-top:4px;">
+                            <button onclick="flipMask('h')">↔ 左右反転</button>
+                            <button onclick="flipMask('v')">↕ 上下反転</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 画像型抜きパネル -->
+                <div id="maskImagePanel" class="sub-group" style="display:none; margin-top:8px;">
+                    <div style="margin-bottom:6px;">
+                        <label style="color:#9ca3af; display:block; margin-bottom:4px;">└ 型抜き用画像</label>
+                        <input type="file" id="maskImageLoader" accept="image/*">
+                        <span id="maskImageLabel" style="font-size:0.75rem; color:#9ca3af; margin-top:4px; display:block;">未選択</span>
+                    </div>
+                    <div style="margin-bottom:6px;">
+                        <label for="maskImageThresh" style="color:#9ca3af; display:block; margin-bottom:4px;">明度しきい値（明るい部分を型抜き）</label>
+                        <div class="step-input-container">
+                            <input type="range" id="maskImageThresh" min="0" max="255" value="128" step="1">
+                            <input type="number" id="maskImageThreshNum" min="0" max="255" value="128" step="1" style="width:65px!important; text-align:center;">
+                        </div>
+                    </div>
+                    <div style="margin-bottom:6px;">
+                        <label for="maskImageInvert" style="color:#9ca3af; display:block; margin-bottom:4px;">マスク反転</label>
+                        <select id="maskImageInvert">
+                            <option value="0">明るい部分を残す（通常）</option>
+                            <option value="1">暗い部分を残す（反転）</option>
+                        </select>
+                    </div>
+                    <div class="grid-3">
+                        <div>
+                            <label for="maskImageOffsetX">位置(X)</label>
+                            <input type="number" id="maskImageOffsetX" value="0" step="5">
+                        </div>
+                        <div>
+                            <label for="maskImageOffsetY">位置(Y)</label>
+                            <input type="number" id="maskImageOffsetY" value="0" step="5">
+                        </div>
+                        <div>
+                            <label for="maskImageScale">倍率(%)</label>
+                            <input type="number" id="maskImageScale" value="100" min="10" max="500" step="5">
+                        </div>
+                    </div>
+                    <!-- 画像型抜きの回転 -->
+                    <div style="margin-top:8px;">
+                        <label style="color:#9ca3af; display:block; margin-bottom:4px;">回転角度</label>
+                        <div class="step-input-container">
+                            <input type="range" id="maskImageRotation" min="-180" max="180" value="0" step="1">
+                            <input type="number" id="maskImageRotationNum" min="-180" max="180" value="0" step="1" style="width:65px!important; text-align:center;">
+                        </div>
+                        <div class="rotation-display" id="maskImageRotationDisplay">0°</div>
+                        <div class="rotate-btn-row">
+                            <button onclick="setImageMaskRotation(-90)">↺ -90°</button>
+                            <button onclick="setImageMaskRotation(0)">⬛ 0°</button>
+                            <button onclick="setImageMaskRotation(90)">↻ +90°</button>
+                            <button onclick="setImageMaskRotation(180)">↕ 180°</button>
+                        </div>
+                        <div class="rotate-btn-row" style="margin-top:4px;">
+                            <button onclick="flipImageMask('h')">↔ 左右反転</button>
+                            <button onclick="flipImageMask('v')">↕ 上下反転</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="drawIntensity">⑨ 描画の濃さ</label>
+                <select id="drawIntensity">
+                    <option value="1" selected>標準</option>
+                    <option value="2">濃いめ</option>
+                    <option value="3">極濃</option>
+                    <option value="4">超極濃</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="maxLines">⑩ コピペ最大データ行数（0で無制限）</label>
+                <input type="number" id="maxLines" min="0" value="15000">
+            </div>
+
+            <div class="control-group">
+                <label for="canvasBgMode">⑪ プレビュー背景色</label>
+                <div class="bg-color-picker-wrapper">
+                    <select id="canvasBgMode">
+                        <option value="transparent" selected>透過（チェッカー格子）</option>
+                        <option value="custom">指定色</option>
+                    </select>
+                    <input type="color" id="canvasBgColor" value="#ffffff">
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button id="restartBtn" disabled>設定を反映して再生成</button>
+                <button id="saveBtn" disabled>背景設定を維持して画像を保存</button>
+                <button id="copyBtn" disabled>色・文字入りデータをまとめてコピー</button>
+            </div>
+        </div>
+
+        <div id="canvas-wrapper" class="checkerboard-bg">
+            <canvas id="imageCanvas"></canvas>
+        </div>
+        <div id="status">画像を選択してください</div>
+
+        <div id="textarea-wrapper">
+            <label id="textareaLabel" style="font-size:0.8rem; font-weight:bold; color:#9ca3af;"></label>
+            <textarea id="outputData" readonly onclick="this.select();"></textarea>
+        </div>
+    </div>
+
+    <script>
+        const imageLoader = document.getElementById('imageLoader');
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+        const drawStyleSelect = document.getElementById('drawStyle');
+        const charTextInput = document.getElementById('charText'); 
+        const charInputGroup = document.getElementById('charInputGroup');
+        const iconInputGroup = document.getElementById('iconInputGroup');
+        const iconLoader = document.getElementById('iconLoader');
+        const iconCountLabel = document.getElementById('iconCountLabel');
+        const targetModeSelect = document.getElementById('targetMode');
+        const colorModeSelect = document.getElementById('colorMode');
+        const monoConfigArea = document.getElementById('monoConfigArea');
+        const monoContrast = document.getElementById('monoContrast');
+        const monoContrastNum = document.getElementById('monoContrastNum');
+        const stepRange = document.getElementById('stepRange');
+        const stepNumber = document.getElementById('stepNumber');
+        const densityLabel = document.getElementById('densityLabel');
+        const dotSizeSelect = document.getElementById('dotSize');
+        const thresholdInput = document.getElementById('threshold');
+        const thresholdNum = document.getElementById('thresholdNum'); 
+        const maskModeSelect = document.getElementById('maskMode');
+        const maskCharInput = document.getElementById('maskChar');
+        const maskCharPanel = document.getElementById('maskCharPanel');
+        const maskImagePanel = document.getElementById('maskImagePanel');
+        const maskOffsetX = document.getElementById('maskOffsetX');
+        const maskOffsetY = document.getElementById('maskOffsetY');
+        const maskScale = document.getElementById('maskScale');
+        const maskRotation = document.getElementById('maskRotation');
+        const maskRotationNum = document.getElementById('maskRotationNum');
+        const rotationDisplay = document.getElementById('rotationDisplay');
+        const drawIntensitySelect = document.getElementById('drawIntensity');
+        const maxLinesInput = document.getElementById('maxLines');
+        const canvasWrapper = document.getElementById('canvas-wrapper');
+        const canvasBgMode = document.getElementById('canvasBgMode');
+        const canvasBgColor = document.getElementById('canvasBgColor');
+        const restartBtn = document.getElementById('restartBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const statusText = document.getElementById('status');
+        const textareaWrapper = document.getElementById('textarea-wrapper');
+        const outputData = document.getElementById('outputData');
+        const textareaLabel = document.getElementById('textareaLabel');
+
+        const maskImageLoader = document.getElementById('maskImageLoader');
+        const maskImageLabel = document.getElementById('maskImageLabel');
+        const maskImageThresh = document.getElementById('maskImageThresh');
+        const maskImageThreshNum = document.getElementById('maskImageThreshNum');
+        const maskImageInvert = document.getElementById('maskImageInvert');
+        const maskImageOffsetX = document.getElementById('maskImageOffsetX');
+        const maskImageOffsetY = document.getElementById('maskImageOffsetY');
+        const maskImageScale = document.getElementById('maskImageScale');
+        const maskImageRotation = document.getElementById('maskImageRotation');
+        const maskImageRotationNum = document.getElementById('maskImageRotationNum');
+        const maskImageRotationDisplay = document.getElementById('maskImageRotationDisplay');
+
+        let animationFrameId;
+        let currentImg = null;
+        let allPoints = []; 
+        let loadedIcons = [];
+        let maskImg = null;         
+        let maskFlipH = false;      
+        let maskFlipV = false;      
+        let maskImageFlipH = false; 
+        let maskImageFlipV = false; 
+
+        thresholdNum.value = thresholdInput.value;
+
+        canvasBgMode.addEventListener('change', updateWrapperBackground);
+        canvasBgColor.addEventListener('input', updateWrapperBackground);
+
+        function updateWrapperBackground() {
+            if (canvasBgMode.value === 'transparent') {
+                canvasWrapper.classList.add('checkerboard-bg');
+                canvasWrapper.style.backgroundColor = '';
+                canvasWrapper.style.backgroundImage = '';
+            } else {
+                canvasWrapper.classList.remove('checkerboard-bg');
+                canvasWrapper.style.backgroundImage = 'none';
+                canvasWrapper.style.backgroundColor = canvasBgColor.value;
+            }
+        }
+
+        drawStyleSelect.addEventListener('change', () => {
+            const val = drawStyleSelect.value;
+            if (val === 'text') {
+                charInputGroup.style.display = "flex"; charInputGroup.style.opacity = "1";
+                iconInputGroup.style.display = "none";
+            } else if (val === 'icon') {
+                charInputGroup.style.display = "none"; iconInputGroup.style.display = "flex";
+            } else {
+                charInputGroup.style.display = "flex"; charInputGroup.style.opacity = "0.5";
+                iconInputGroup.style.display = "none";
+            }
+        });
+
+        iconLoader.addEventListener('change', (e) => {
+            loadedIcons = [];
+            const files = e.target.files;
+            if (!files.length) { iconCountLabel.innerText = "未選択"; return; }
+            let loaded = 0;
+            for (let i = 0; i < files.length; i++) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    const img = new Image();
+                    img.onload = () => { loadedIcons.push(img); if (++loaded === files.length) iconCountLabel.innerText = `読み込み完了: ${loadedIcons.length}個`; };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(files[i]);
+            }
+        });
+
+        maskModeSelect.addEventListener('change', () => {
+            const v = maskModeSelect.value;
+            maskCharPanel.style.display  = (v === 'char')  ? 'block' : 'none';
+            maskImagePanel.style.display = (v === 'image') ? 'block' : 'none';
+        });
+
+        maskImageLoader.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) { maskImg = null; maskImageLabel.innerText = "未選択"; return; }
+            const reader = new FileReader();
+            reader.onload = ev => {
+                const img = new Image();
+                img.onload = () => { maskImg = img; maskImageLabel.innerText = `読込完了: ${img.width}×${img.height}px`; };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        maskImageThresh.addEventListener('input', e => { maskImageThreshNum.value = e.target.value; });
+        maskImageThreshNum.addEventListener('input', e => {
+            let v = parseInt(e.target.value); if (isNaN(v)) return;
+            v = Math.min(255, Math.max(0, v)); maskImageThresh.value = v;
+        });
+
+        maskRotation.addEventListener('input', e => {
+            maskRotationNum.value = e.target.value;
+            rotationDisplay.innerText = e.target.value + '°';
+        });
+        maskRotationNum.addEventListener('input', e => {
+            let v = parseInt(e.target.value); if (isNaN(v)) return;
+            v = Math.min(180, Math.max(-180, v));
+            maskRotation.value = v; rotationDisplay.innerText = v + '°';
+        });
+
+        maskImageRotation.addEventListener('input', e => {
+            maskImageRotationNum.value = e.target.value;
+            maskImageRotationDisplay.innerText = e.target.value + '°';
+        });
+        maskImageRotationNum.addEventListener('input', e => {
+            let v = parseInt(e.target.value); if (isNaN(v)) return;
+            v = Math.min(180, Math.max(-180, v));
+            maskImageRotation.value = v; maskImageRotationDisplay.innerText = v + '°';
+        });
+
+        function setRotation(deg) {
+            maskRotation.value = deg; maskRotationNum.value = deg;
+            rotationDisplay.innerText = deg + '°';
+        }
+        function setImageMaskRotation(deg) {
+            maskImageRotation.value = deg; maskImageRotationNum.value = deg;
+            maskImageRotationDisplay.innerText = deg + '°';
+        }
+        function flipMask(dir) {
+            if (dir === 'h') { maskFlipH = !maskFlipH; }
+            else              { maskFlipV = !maskFlipV; }
+        }
+        function flipImageMask(dir) {
+            if (dir === 'h') { maskImageFlipH = !maskImageFlipH; }
+            else              { maskImageFlipV = !maskImageFlipV; }
+        }
+
+        colorModeSelect.addEventListener('change', () => {
+            monoConfigArea.style.display = (colorModeSelect.value === 'monoAdjustment') ? "block" : "none";
+        });
+        monoContrast.addEventListener('input', e => { monoContrastNum.value = e.target.value; });
+        monoContrastNum.addEventListener('input', e => {
+            let v = parseInt(e.target.value); if (isNaN(v)) return;
+            monoContrast.value = Math.min(100, Math.max(-100, v));
+        });
+        stepRange.addEventListener('input', e => { let v = parseFloat(e.target.value); stepNumber.value = v; updateDensityLabel(v); });
+        stepNumber.addEventListener('input', e => {
+            let v = parseFloat(e.target.value); if (isNaN(v)) return;
+            v = Math.min(12, Math.max(0.1, v)); stepRange.value = v; updateDensityLabel(v);
+        });
+        thresholdInput.addEventListener('input', e => { thresholdNum.value = parseFloat(e.target.value); });
+        thresholdNum.addEventListener('input', e => {
+            let v = parseFloat(e.target.value); if (isNaN(v)) return;
+            thresholdInput.value = Math.min(100, Math.max(0.1, v));
+        });
+
+        function updateDensityLabel(val) {
+            if (val <= 0.4)      { densityLabel.innerText = `間隔: ${val}px 【★★★ハイパーターボ】`; densityLabel.style.color = "#ef4444"; }
+            else if (val === 0.5){ densityLabel.innerText = "間隔: 0.5px 【★★スーパーターボ】";   densityLabel.style.color = "#ec4899"; }
+            else if (val === 1)  { densityLabel.innerText = "間隔: 1px 【★ターボ】";               densityLabel.style.color = "#10b981"; }
+            else                  { densityLabel.innerText = `間隔: ${val}px`;                       densityLabel.style.color = "#9ca3af"; }
+        }
+
+        imageLoader.addEventListener('change', handleImage, false);
+        restartBtn.addEventListener('click', () => { if (currentImg) processImage(currentImg); });
+        saveBtn.addEventListener('click', saveCanvasAsImage);
+        copyBtn.addEventListener('click', copyPointsToClipboard);
+
+        function handleImage(e) {
+            const reader = new FileReader();
+            reader.onload = ev => {
+                const img = new Image();
+                img.onload = () => { currentImg = img; restartBtn.disabled = false; processImage(img); };
+                img.src = ev.target.result;
+            };
+            if (e.target.files[0]) reader.readAsDataURL(e.target.files[0]);
+        }
+        document.addEventListener('paste', (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = ev => {
+                        const img = new Image();
+                        img.onload = () => { currentImg = img; restartBtn.disabled = false; processImage(img); };
+                        img.src = ev.target.result;
+                    };
+                    reader.readAsDataURL(item.getAsFile());
+                    statusText.innerText = "クリップボード画像を読み込みました";
+                    e.preventDefault(); break;
+                }
+            }
+        });
+
+        function processImage(img) {
+            cancelAnimationFrame(animationFrameId);
+            copyBtn.disabled = true; saveBtn.disabled = true;
+            textareaWrapper.style.display = 'none'; 
+            statusText.innerText = "展開中...";
+
+            const maxDim = 1000;
+            let scale = 1;
+            if (img.width > maxDim || img.height > maxDim)
+                scale = img.width > img.height ? maxDim / img.width : maxDim / img.height;
+
+            canvas.width  = Math.round(img.width  * scale);
+            canvas.height = Math.round(img.height * scale);
+
+            let step = parseFloat(stepNumber.value) || 1.0;
+            const est = (canvas.width / step) * (canvas.height / step);
+            if (est > 3000000) {
+                step = Math.ceil(Math.sqrt((canvas.width * canvas.height) / 3000000) * 10) / 10;
+                stepNumber.value = step; stepRange.value = step; updateDensityLabel(step);
+                alert(`【フリーズ防止安全装置】自動的に [間隔: ${step}px] にマッピングしました。`);
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            
+            let maskData = null;
+            const mMode = maskModeSelect.value;
+            if (mMode === 'char') {
+                maskData = createCharMaskMap(
+                    canvas.width, canvas.height,
+                    maskCharInput.value || "HELLO",
+                    parseFloat(maskOffsetX.value) || 0,
+                    parseFloat(maskOffsetY.value) || 0,
+                    (parseFloat(maskScale.value) || 100) / 100,
+                    parseFloat(maskRotation.value) || 0,
+                    maskFlipH, maskFlipV
+                );
+            } else if (mMode === 'image' && maskImg) {
+                maskData = createImageMaskMap(
+                    canvas.width, canvas.height,
+                    maskImg,
+                    parseFloat(maskImageOffsetX.value) || 0,
+                    parseFloat(maskImageOffsetY.value) || 0,
+                    (parseFloat(maskImageScale.value) || 100) / 100,
+                    parseFloat(maskImageRotation.value) || 0,
+                    maskImageFlipH, maskImageFlipV,
+                    parseInt(maskImageThresh.value) || 128,
+                    parseInt(maskImageInvert.value) || 0
+                );
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            allPoints = extractPoints(imgData, maskData, step);
+
+            let drawPoints = [...allPoints];
+            shuffleArray(drawPoints);
+            statusText.innerText = `解析完了: ${allPoints.length} キャンバスへプロット中...`;
+            animatePoints(drawPoints, step);
+        }
+
+        function createCharMaskMap(w, h, text, offsetX, offsetY, scaleMultiplier, rotateDeg, flipH, flipV) {
+            const off = document.createElement('canvas');
+            off.width = w; off.height = h;
+            const oCtx = off.getContext('2d');
+            oCtx.clearRect(0, 0, w, h);
+
+            let fontSize = Math.min(w, h) * 0.9;
+            oCtx.font = `bold ${fontSize}px sans-serif`;
+            while (oCtx.measureText(text).width > w * 0.95 && fontSize > 10) {
+                fontSize -= 5; oCtx.font = `bold ${fontSize}px sans-serif`;
+            }
+            fontSize *= scaleMultiplier;
+
+            oCtx.save();
+            oCtx.translate((w / 2) + offsetX, (h / 2) + offsetY);
+            oCtx.rotate(rotateDeg * Math.PI / 180);
+            oCtx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+            oCtx.font = `bold ${fontSize}px sans-serif`;
+            oCtx.textAlign = "center"; oCtx.textBaseline = "middle";
+            oCtx.fillStyle = '#ffffff';
+            oCtx.fillText(text, 0, 0);
+            oCtx.restore();
+
+            return oCtx.getImageData(0, 0, w, h).data;
+        }
+
+        function createImageMaskMap(w, h, srcImg, offsetX, offsetY, scaleMultiplier, rotateDeg, flipH, flipV, thresh, invert) {
+            const off = document.createElement('canvas');
+            off.width = w; off.height = h;
+            const oCtx = off.getContext('2d');
+            oCtx.clearRect(0, 0, w, h);
+
+            const drawW = srcImg.width  * scaleMultiplier;
+            const drawH = srcImg.height * scaleMultiplier;
+
+            oCtx.save();
+            oCtx.translate((w / 2) + offsetX, (h / 2) + offsetY);
+            oCtx.rotate(rotateDeg * Math.PI / 180);
+            oCtx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+            oCtx.drawImage(srcImg, -drawW / 2, -drawH / 2, drawW, drawH);
+            oCtx.restore();
+
+            const pix = oCtx.getImageData(0, 0, w, h).data;
+
+            const mask = new Uint8ClampedArray(w * h * 4);
+            for (let i = 0; i < pix.length; i += 4) {
+                const a = pix[i + 3];
+                const lum = 0.2126 * pix[i] + 0.7152 * pix[i+1] + 0.0722 * pix[i+2];
+                let inside = (a > 0) && (lum >= thresh);
+                if (invert) inside = !inside;
+                const val = inside ? 255 : 0;
+                mask[i] = val; mask[i+1] = val; mask[i+2] = val; mask[i+3] = 255;
+            }
+            return mask;
+        }
+
+        function extractPoints(imgData, maskData, step) {
+            const w = imgData.width, h = imgData.height, d = imgData.data;
+            const points = [];
+            const targetMode = targetModeSelect.value;
+            const thresh = parseFloat(thresholdNum.value) || 0.1; 
+            const style = drawStyleSelect.value;
+            const charList = charTextInput.value || "@";
+            const colorMode = colorModeSelect.value;
+            const contrastFactor = (parseInt(monoContrast.value) + 100) / 100;
+
+            let errorBufR, errorBufG, errorBufB;
+            if (colorMode === 'hyperColor') {
+                errorBufR = new Float32Array(w * h);
+                errorBufG = new Float32Array(w * h);
+                errorBufB = new Float32Array(w * h);
+            }
+
+            let pointCounter = 0;
+
+            function getLum(kx, ky) {
+                if (kx < 0 || kx >= w || ky < 0 || ky >= h) return 255;
+                const idx = (ky * w + kx) * 4;
+                if (d[idx+3] === 0) return 255;
+                return 0.2126 * d[idx] + 0.7152 * d[idx+1] + 0.0722 * d[idx+2];
+            }
+
+            for (let y = 0; y < h; y += step) {
+                for (let x = 0; x < w; x += step) {
+                    const ix = Math.floor(x), iy = Math.floor(y);
+                    if (ix >= w || iy >= h) continue;
+                    if (maskData) {
+                        const mi = (iy * w + ix) * 4;
+                        if (mi >= maskData.length || maskData[mi] < 128) continue;
+                    }
+                    const i = (iy * w + ix) * 4;
+                    if (d[i+3] === 0) continue;
+                    if (d[i] >= 254 && d[i+1] >= 254 && d[i+2] >= 254) continue;
+
+                    let r = d[i], g = d[i+1], b = d[i+2];
+                    const centerLum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+                    if (targetMode === 'ultraEdge') {
+                        const l00=getLum(ix-1,iy-1),l10=getLum(ix,iy-1),l20=getLum(ix+1,iy-1);
+                        const l01=getLum(ix-1,iy),                        l21=getLum(ix+1,iy);
+                        const l02=getLum(ix-1,iy+1),l12=getLum(ix,iy+1),l22=getLum(ix+1,iy+1);
+                        const gX=(l20+(2*l21)+l22)-(l00+(2*l01)+l02);
+                        const gY=(l02+(2*l12)+l22)-(l00+(2*l10)+l20);
+                        const lap=Math.abs((l10+l01+l21+l12)-(4*centerLum));
+                        if (Math.sqrt(gX*gX+gY*gY)+(lap*0.75) < thresh) continue;
+                    } else if (targetMode === 'edge') {
+                        const mag=Math.sqrt(Math.pow(getLum(ix+1,iy)-centerLum,2)+Math.pow(getLum(ix,iy+1)-centerLum,2));
+                        if (mag < thresh) continue;
+                    }
+
+                    let assignedChar = "●", iconIndex = -1;
+                    if      (style === 'text') { assignedChar = charList[pointCounter % charList.length]; }
+                    else if (style === 'icon') { assignedChar = "[Icon]"; if (loadedIcons.length > 0) iconIndex = pointCounter % loadedIcons.length; }
+
+                    let finalR, finalG, finalB;
+                    if (colorMode === 'outlineColor' || colorMode === 'color') {
+                        finalR=r; finalG=g; finalB=b;
+                    } else if (colorMode === 'hyperColor') {
+                        const bi=iy*w+ix;
+                        finalR=Math.min(255,Math.max(0,Math.round(r+errorBufR[bi])));
+                        finalG=Math.min(255,Math.max(0,Math.round(g+errorBufG[bi])));
+                        finalB=Math.min(255,Math.max(0,Math.round(b+errorBufB[bi])));
+                        const eR=r+errorBufR[bi]-finalR, eG=g+errorBufG[bi]-finalG, eB=b+errorBufB[bi]-finalB;
+                        if(ix+1<w){errorBufR[bi+1]+=eR*0.45;errorBufG[bi+1]+=eG*0.45;errorBufB[bi+1]+=eB*0.45;}
+                        if(iy+1<h){errorBufR[bi+w]+=eR*0.45;errorBufG[bi+w]+=eG*0.45;errorBufB[bi+w]+=eB*0.45;}
+                    } else if (colorMode === 'monoAdjustment') {
+                        let gray=Math.min(255,Math.max(0,Math.round((centerLum-128)*contrastFactor+128)));
+                        finalR=gray; finalG=gray; finalB=gray;
+                    } else { finalR=17; finalG=17; finalB=17; }
+
+                    points.push({ x, y, char: assignedChar, r: finalR, g: finalG, b: finalB, iconIndex });
+                    pointCounter++;
+                }
+            }
+            return points;
+        }
+
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+        }
+
+        function animatePoints(points, step) {
+            let index = 0;
+            const style = drawStyleSelect.value;
+            const intensity = parseInt(drawIntensitySelect.value) || 1;
+
+            let size;
+            if (dotSizeSelect.value === 'auto') {
+                if      (step <= 0.2) size = (style !== 'dot') ? 0.35 : 0.16;
+                else if (step <= 0.5) size = (style !== 'dot') ? 0.7  : 0.38;
+                else if (step === 1)  size = (style !== 'dot') ? 1.3  : 0.72;
+                else                  size = (style !== 'dot') ? step * 1.1 : step * 0.68;
+            } else {
+                size = parseFloat(dotSizeSelect.value) * ((style !== 'dot') ? 1.4 : 1.0);
+            }
+
+            if (style === 'text') { ctx.textAlign = "center"; ctx.textBaseline = "middle"; }
+
+            const ppf = Math.max(3000, Math.floor(points.length / 40));
+
+            function drawElement(pt) {
+                ctx.fillStyle = `rgb(${pt.r},${pt.g},${pt.b})`;
+                if (style === 'text') {
+                    ctx.font = `${intensity > 2 ? '900' : 'bold'} ${size}px monospace`;
+                    ctx.fillText(pt.char, pt.x, pt.y);
+                } else if (style === 'icon' && loadedIcons.length > 0 && pt.iconIndex !== -1) {
+                    const icon = loadedIcons[pt.iconIndex];
+                    const is = size * 1.5;
+                    ctx.save(); ctx.translate(pt.x, pt.y);
+                    ctx.drawImage(icon, -is/2, -is/2, is, is);
+                    ctx.globalCompositeOperation = 'source-atop';
+                    ctx.fillStyle = `rgb(${pt.r},${pt.g},${pt.b})`;
+                    ctx.fillRect(-is/2, -is/2, is, is);
+                    ctx.restore();
+                } else {
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, size, 0, Math.PI*2); ctx.fill();
+                }
+            }
+
+            function draw() {
+                for (let i = 0; i < ppf; i++) {
+                    if (index >= points.length) {
+                        statusText.innerText = `総エッジドット数: ${allPoints.length} 個`;
+                        copyBtn.disabled = false; saveBtn.disabled = false; return;
+                    }
+                    const pt = points[index];
+                    for (let loop = 0; loop < intensity; loop++) {
+                        drawElement(loop === 0 ? pt : { ...pt, x: pt.x + Math.sin(loop)*0.08, y: pt.y + Math.cos(loop)*0.08 });
+                    }
+                    index++;
+                }
+                animationFrameId = requestAnimationFrame(draw);
+            }
+            draw();
+        }
+
+        function saveCanvasAsImage() {
+            if (!allPoints.length) return;
+            if (canvasBgMode.value === 'custom') {
+                const sc = document.createElement('canvas');
+                sc.width = canvas.width; sc.height = canvas.height;
+                const sCtx = sc.getContext('2d');
+                sCtx.fillStyle = canvasBgColor.value;
+                sCtx.fillRect(0, 0, sc.width, sc.height);
+                sCtx.drawImage(canvas, 0, 0);
+                const a = document.createElement('a');
+                a.download = 'tenten_art.png'; a.href = sc.toDataURL('image/png'); a.click();
+            } else {
+                const a = document.createElement('a');
+                a.download = 'tenten_art_transparent.png'; a.href = canvas.toDataURL('image/png'); a.click();
+            }
+        }
+
+        function copyPointsToClipboard() {
+            if (!allPoints.length) return;
+            const maxLines = parseInt(maxLinesInput.value) || 0;
+            let pts = [...allPoints];
+            if (maxLines > 0 && pts.length > maxLines) {
+                const s = pts.length / maxLines;
+                pts = Array.from({ length: maxLines }, (_, i) => pts[Math.floor(i * s)]);
+            }
+            let text = "X,Y,Char,R,G,B\n" + pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)},${p.char},${p.r},${p.g},${p.b}`).join("\n");
+            outputData.value = text;
+            textareaLabel.innerText = `輪郭カラーデータを作成（総行数: ${pts.length} 行）:`;
+            textareaWrapper.style.display = 'block';
+            navigator.clipboard.writeText(text).then(
+                () => alert(`超輪郭データのコピー成功！\nデータ行数: ${pts.length} 行`),
+                () => alert("データを作成しました。最下部から手動コピーしてください。")
+            );
+        }
+    </script>
+</body>
+</html>
