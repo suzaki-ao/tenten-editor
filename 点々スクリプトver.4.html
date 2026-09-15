@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SVG 高画質変換ツール PRO</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#f2f5f9;
+  --card:#fff;
+  --text:#172033;
+  --muted:#687386;
+  --line:#e5e9ef;
+  --blue:#2d9cdb;
+  --blue2:#2386c2;
+  --green:#20bf6b;
+  --orange:#f08a24;
+  --red:#e05252;
+}
+html,body{margin:0;min-height:100%;font-family:"Segoe UI","Yu Gothic",Meiryo,sans-serif;color:var(--text);background:var(--bg)}
+button,input,select{font:inherit}
+header{
+  padding:22px 28px;color:#fff;
+  background:linear-gradient(135deg,#18202b,#263444);
+}
+header h1{margin:0;font-size:25px}
+header p{margin:6px 0 0;color:#cbd5e1}
+.wrap{max-width:1450px;margin:auto;padding:22px}
+.card{
+  background:var(--card);border:1px solid #edf0f4;border-radius:16px;
+  padding:22px;margin-bottom:18px;box-shadow:0 7px 25px rgba(21,35,55,.06)
+}
+.drop{
+  min-height:170px;border:3px dashed #b7c0cc;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  cursor:pointer;background:#fbfcfd;transition:.2s
+}
+.drop:hover,.drop.over{border-color:var(--blue);background:#f1f9fe}
+.drop .icon{font-size:46px}.drop b{display:block;font-size:20px;margin-top:7px}.drop span{display:block;color:var(--muted);margin-top:6px}
+input[type=file]{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-weight:700;font-size:14px}
+input[type=text],input[type=number],select{
+  width:100%;padding:10px 11px;border:1px solid #ccd4de;border-radius:9px;background:#fff
+}
+input:focus,select:focus{outline:2px solid #cceafb;border-color:var(--blue)}
+input[type=color]{width:100%;height:43px;border:1px solid #ccd4de;border-radius:9px;padding:3px}
+.check{display:flex;align-items:center;gap:8px}
+.check input{width:18px;height:18px}
+.range{display:flex;align-items:center;gap:10px}.range input{flex:1}.range b{min-width:52px;text-align:right}
+.sep{height:1px;background:var(--line);margin:20px 0}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.info{padding:12px;border-radius:10px;background:#f6f8fa}.info small{display:block;color:var(--muted)}.info strong{display:block;margin-top:4px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+button{border:0;border-radius:9px;padding:11px 17px;font-weight:700;cursor:pointer}
+.primary{background:var(--blue);color:#fff}.primary:hover{background:var(--blue2)}
+.secondary{background:#e9eef4;color:#243143}.danger{background:#df5555;color:#fff}
+button:disabled{opacity:.48;cursor:not-allowed}
+.preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.preview{
+  min-height:330px;border:1px solid #dfe4ea;border-radius:12px;padding:16px;
+  display:flex;align-items:center;justify-content:center;overflow:auto;
+  background-color:#fff;
+  background-image:linear-gradient(45deg,#e9edf1 25%,transparent 25%),linear-gradient(-45deg,#e9edf1 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e9edf1 75%),linear-gradient(-45deg,transparent 75%,#e9edf1 75%);
+  background-size:22px 22px;background-position:0 0,0 11px,11px -11px,-11px 0
+}
+.preview img,.preview canvas{max-width:100%;max-height:560px;object-fit:contain;box-shadow:0 2px 14px rgba(0,0,0,.12)}
+.note{margin-top:12px;padding:12px 14px;border-radius:9px;background:#fff7ed;color:#9a4a0a;font-size:13px}
+.status{display:none;margin-top:13px;padding:12px 14px;border-radius:9px}.status.show{display:block}
+.ok{background:#ecfdf5;color:#087443}.err{background:#fff1f2;color:#a51d2d}
+.hidden{display:none!important}
+#dpiCustom{display:none}
+
+/* Processing screen */
+#processing{
+  position:fixed;inset:0;z-index:9999;background:rgba(239,243,247,.96);
+  display:none;overflow:auto
+}
+#processing.show{display:block}
+.process-shell{
+  width:min(980px,calc(100% - 30px));margin:18px auto 35px;
+  background:#fff;border-radius:15px;padding:30px;
+  box-shadow:0 8px 30px rgba(30,45,65,.09)
+}
+.loader{
+  width:145px;height:145px;border-radius:50%;margin:0 auto 22px;
+  background:conic-gradient(from 10deg,var(--red) 0 28%,#eef1f4 28% 53%,var(--blue) 53% 78%,#eef1f4 78% 100%);
+  position:relative;animation:spin 1.35s linear infinite
+}
+.loader:after{content:"";position:absolute;inset:15px;border-radius:50%;background:#fff}
+.loader .dot{position:absolute;z-index:2;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.process-title{text-align:center;color:#f05b51;font-size:21px;font-weight:800;margin-bottom:27px}
+.hr{height:1px;background:#e7ebef;margin-bottom:26px}
+.phead{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:10px;font-weight:800}
+.badge{display:inline-block;background:var(--green);color:#fff;border-radius:999px;padding:4px 10px;font-size:14px;margin-right:8px}
+.bar{height:25px;border-radius:999px;background:#e5e8ec;overflow:hidden}
+.bar > div{
+  height:100%;width:0%;transition:width .08s linear;
+  background:repeating-linear-gradient(135deg,#ee8a22 0 22px,#d98227 22px 44px,#aeb4ae 44px 66px,#58a8d6 66px 88px);
+}
+.metrics{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;
+  background:#f7f8fa;border-radius:9px;padding:13px
+}
+.metric{display:flex;justify-content:space-between;gap:10px}.metric b{font-size:18px}
+.chartbox{margin-top:22px;height:210px;position:relative}
+#speedCanvas{width:100%;height:100%;display:block}
+.chart-label{position:absolute;top:-2px;left:50%;transform:translateX(-50%);color:#7b7f86;font-size:14px}
+.stage{display:flex;gap:9px;flex-wrap:wrap;margin-top:17px}
+.stage span{padding:7px 10px;border-radius:8px;background:#edf1f5;color:#748092;font-size:13px;font-weight:700}
+.stage span.active{background:#e7f5fd;color:#1777ad}.stage span.done{background:#e9f9f0;color:#16834d}
+.process-actions{text-align:center;margin-top:18px}
+@media(max-width:760px){
+ .wrap{padding:13px}.card{padding:16px}.preview-grid{grid-template-columns:1fr}
+ .process-shell{padding:20px}.metrics{grid-template-columns:1fr}.phead{align-items:flex-start;flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SVG → 高画質画像変換ツール PRO</h1>
+  <p>ピクセル・DPI・品質・透明背景・高解像度出力を細かく制御。処理状況もリアルタイム表示。</p>
+</header>
+
+<div class="wrap">
+  <section class="card">
+    <div class="drop" id="drop">
+      <div><div class="icon">🖼️</div><b>SVGファイルをここにドロップ</b><span>クリックして選択することもできます</span></div>
+    </div>
+    <input id="file" type="file" accept=".svg,image/svg+xml">
+    <div id="status" class="status"></div>
+  </section>
+
+  <div id="main" class="hidden">
+    <section class="card">
+      <h2>SVG情報</h2>
+      <div class="info-grid">
+        <div class="info"><small>ファイル名</small><strong id="srcName">---</strong></div>
+        <div class="info"><small>SVG論理サイズ</small><strong id="srcSize">---</strong></div>
+        <div class="info"><small>viewBox</small><strong id="srcView">---</strong></div>
+        <div class="info"><small>アスペクト比</small><strong id="srcRatio">---</strong></div>
+        <div class="info"><small>ファイル容量</small><strong id="srcBytes">---</strong></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>出力設定</h2>
+      <div class="grid">
+        <div class="field"><label>出力形式</label><select id="format"><option value="png">PNG（可逆・透明）</option><option value="jpeg">JPG</option><option value="webp">WebP</option></select></div>
+        <div class="field"><label>解像度プリセット</label><select id="preset">
+          <option value="custom">カスタム</option><option value="hd">HD 1280×720</option><option value="fhd">Full HD 1920×1080</option><option value="qhd">QHD 2560×1440</option><option value="4k">4K 3840×2160</option><option value="5k">5K 5120×2880</option><option value="8k">8K 7680×4320</option><option value="a4-300">A4 300dpi</option><option value="a4-600">A4 600dpi</option><option value="a3-300">A3 300dpi</option>
+        </select></div>
+        <div class="field"><label>倍率</label><select id="scale"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option><option>10</option><option>12</option><option>16</option><option>20</option><option value="custom">カスタム</option></select></div>
+        <div class="field"><label>幅（px）</label><input id="w" type="number" min="1" max="50000" value="1920"></div>
+        <div class="field"><label>高さ（px）</label><input id="h" type="number" min="1" max="50000" value="1080"></div>
+        <div class="field"><label>DPI</label><select id="dpi"><option>72</option><option selected>96</option><option>150</option><option>300</option><option>600</option><option>1200</option><option value="custom">カスタム</option></select></div>
+        <div class="field" id="dpiCustom"><label>カスタムDPI</label><input id="dpiNum" type="number" min="1" max="10000" value="300"></div>
+        <div class="field"><label>背景色</label><input id="bg" type="color" value="#ffffff"></div>
+        <div class="field"><label>ファイル名</label><input id="outName" type="text" value="converted"></div>
+        <div class="field"><label>品質（JPG / WebP）</label><div class="range"><input id="quality" type="range" min="1" max="100" value="95"><b id="qualityText">95%</b></div></div>
+      </div>
+      <div class="sep"></div>
+      <div class="check"><input id="lock" type="checkbox" checked><label for="lock">幅・高さの縦横比を固定</label></div>
+      <div class="check"><input id="transparent" type="checkbox" checked><label for="transparent">透明背景を使用（PNG / WebP）</label></div>
+      <div class="check"><input id="smooth" type="checkbox" checked><label for="smooth">高品質アンチエイリアス</label></div>
+
+      <div class="info-grid" style="margin-top:18px">
+        <div class="info"><small>出力ピクセル</small><strong id="pixels">---</strong></div>
+        <div class="info"><small>総画素数</small><strong id="mp">---</strong></div>
+        <div class="info"><small>印刷サイズ</small><strong id="print">---</strong></div>
+        <div class="info"><small>RGBAメモリ目安</small><strong id="mem">---</strong></div>
+      </div>
+
+      <div class="note">高解像度ではPCのメモリ使用量が増えます。ブラウザのCanvas上限を超えるサイズは自動的に拒否し、変換中は進捗・速度・処理段階を表示します。</div>
+      <div class="actions"><button class="primary" id="convert">高画質で変換開始</button><button class="secondary" id="reset">リセット</button></div>
+    </section>
+
+    <section class="card">
+      <h2>プレビュー</h2>
+      <div class="preview-grid">
+        <div><b>元SVG</b><div class="preview"><img id="srcPreview"></div></div>
+        <div><b>変換後</b><div class="preview"><canvas id="outCanvas"></canvas></div></div>
+      </div>
+      <div class="actions"><button class="primary" id="download" disabled>画像を保存</button></div>
+    </section>
+  </div>
+</div>
+
+<!-- Processing overlay -->
+<div id="processing">
+  <div class="process-shell">
+    <div class="loader"><div class="dot">↻</div></div>
+    <div class="process-title" id="processTitle">✨ 高画質画像を生成しています…</div>
+    <div class="hr"></div>
+
+    <div class="phead">
+      <div><span class="badge" id="badge">処理中</span><span id="processStatus">SVGを解析しています</span></div>
+      <div>進捗: <span id="percent">0%</span></div>
+    </div>
+    <div class="bar"><div id="barFill"></div></div>
+
+    <div class="metrics">
+      <div class="metric"><span>現在の処理速度:</span><b id="speed">0 MB/s</b></div>
+      <div class="metric"><span>コールバック数:</span><b id="callbacks">0 fps</b></div>
+    </div>
+
+    <div class="chartbox"><canvas id="speedCanvas"></canvas><div class="chart-label">瞬時処理速度 (MP/s)</div></div>
+
+    <div class="stage">
+      <span id="s1" class="active">① SVG解析</span>
+      <span id="s2">② ラスタライズ</span>
+      <span id="s3">③ エンコード</span>
+      <span id="s4">④ 完了処理</span>
+    </div>
+
+    <div class="process-actions">
+      <button class="danger" id="cancel">処理をキャンセル</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* -----------------------------
+   State
+----------------------------- */
+const $ = id => document.getElementById(id);
+let svgText = "", sourceFile = null, sourceURL = null, blobOut = null;
+let srcW = 1000, srcH = 1000, aspectRatio = 1;
+let processing = false, cancelled = false;
+let speedSamples = [], callbackTimes = [];
+let lastSpeedTime = 0, lastSpeedPixels = 0;
+
+/* -----------------------------
+   Basic helpers
+----------------------------- */
+function bytes(n){
+  if(n < 1024) return n.toFixed(0)+" B";
+  if(n < 1048576) return (n/1024).toFixed(1)+" KB";
+  if(n < 1073741824) return (n/1048576).toFixed(2)+" MB";
+  return (n/1073741824).toFixed(2)+" GB";
+}
+function dpiValue(){
+  return $("dpi").value === "custom" ? Math.max(1,Number($("dpiNum").value)||300) : Number($("dpi").value);
+}
+function setStatus(text,error=false){
+  const el=$("status"); el.textContent=text; el.className="status show "+(error?"err":"ok");
+}
+function nextFrame(){ return new Promise(r=>requestAnimationFrame(r)); }
+function clamp(n,a,b){return Math.max(a,Math.min(b,n));}
+
+/* -----------------------------
+   File input
+----------------------------- */
+$("drop").onclick=()=> $("file").click();
+$("file").onchange=e=>{ if(e.target.files[0]) loadSVG(e.target.files[0]); };
+$("drop").ondragover=e=>{e.preventDefault();$("drop").classList.add("over")};
+$("drop").ondragleave=()=>$("drop").classList.remove("over");
+$("drop").ondrop=e=>{
+  e.preventDefault();$("drop").classList.remove("over");
+  if(e.dataTransfer.files[0]) loadSVG(e.dataTransfer.files[0]);
+};
+
+async function loadSVG(file){
+  if(!/\.svg$/i.test(file.name)){setStatus("SVGファイルを選択してください。",true);return;}
+  const text=await file.text();
+  const doc=new DOMParser().parseFromString(text,"image/svg+xml");
+  if(doc.querySelector("parsererror") || !doc.documentElement || doc.documentElement.tagName.toLowerCase()!=="svg"){
+    setStatus("SVGの解析に失敗しました。壊れている可能性があります。",true);return;
+  }
+
+  sourceFile=file; svgText=text;
+  const svg=doc.documentElement;
+  let w=parseFloat(svg.getAttribute("width")), h=parseFloat(svg.getAttribute("height"));
+  const vb=(svg.getAttribute("viewBox")||"").trim().split(/[\s,]+/).map(Number);
+
+  if(vb.length===4 && vb.every(Number.isFinite)){
+    if(!(w>0)) w=vb[2];
+    if(!(h>0)) h=vb[3];
+    $("srcView").textContent=vb.join(" ");
+  }else $("srcView").textContent="なし";
+
+  if(!(w>0)) w=1000;
+  if(!(h>0)) h=1000;
+  srcW=w;srcH=h;aspectRatio=w/h;
+
+  $("srcName").textContent=file.name;
+  $("srcSize").textContent=Math.round(w)+" × "+Math.round(h);
+  $("srcRatio").textContent=aspectRatio.toFixed(5);
+  $("srcBytes").textContent=bytes(file.size);
+
+  $("w").value=Math.max(1,Math.round(w*4));
+  $("h").value=Math.max(1,Math.round(h*4));
+  $("scale").value="4"; $("preset").value="custom"; $("outName").value=file.name.replace(/\.svg$/i,"");
+
+  if(sourceURL) URL.revokeObjectURL(sourceURL);
+  sourceURL=URL.createObjectURL(new Blob([svgText],{type:"image/svg+xml"}));
+  $("srcPreview").src=sourceURL;
+  $("main").classList.remove("hidden");
+  updateInfo();
+  setStatus("SVGを読み込みました。",false);
+}
+
+/* -----------------------------
+   Settings
+----------------------------- */
+$("quality").oninput=()=>$("qualityText").textContent=$("quality").value+"%";
+$("dpi").onchange=()=>{
+  $("dpiCustom").style.display=$("dpi").value==="custom"?"flex":"none";
+  updateInfo();
+};
+$("dpiNum").oninput=updateInfo;
+
+$("scale").onchange=()=>{
+  if($("scale").value!=="custom"){
+    const s=Number($("scale").value);
+    $("w").value=Math.max(1,Math.round(srcW*s));
+    $("h").value=Math.max(1,Math.round(srcH*s));
+  }
+  $("preset").value="custom";updateInfo();
+};
+
+$("preset").onchange=()=>{
+  const p=$("preset").value;
+  const map={hd:[1280,720],fhd:[1920,1080],qhd:[2560,1440],"4k":[3840,2160],"5k":[5120,2880],"8k":[7680,4320]};
+  if(map[p]){
+    $("w").value=map[p][0];$("h").value=map[p][1];
+  }else if(p==="a4-300"){
+    $("w").value=Math.round(8.27*300);$("h").value=Math.round(11.69*300);$("dpi").value="300";
+  }else if(p==="a4-600"){
+    $("w").value=Math.round(8.27*600);$("h").value=Math.round(11.69*600);$("dpi").value="600";
+  }else if(p==="a3-300"){
+    $("w").value=Math.round(11.69*300);$("h").value=Math.round(16.54*300);$("dpi").value="300";
+  }
+  $("scale").value="custom";updateInfo();
+};
+
+$("w").oninput=()=>{
+  if($("lock").checked){
+    const w=Number($("w").value); if(w>0) $("h").value=Math.max(1,Math.round(w/aspectRatio));
+  }
+  $("scale").value="custom";$("preset").value="custom";updateInfo();
+};
+$("h").oninput=()=>{
+  if($("lock").checked){
+    const h=Number($("h").value); if(h>0) $("w").value=Math.max(1,Math.round(h*aspectRatio));
+  }
+  $("scale").value="custom";$("preset").value="custom";updateInfo();
+};
+
+function updateInfo(){
+  const w=Math.max(1,parseInt($("w").value)||1), h=Math.max(1,parseInt($("h").value)||1), px=w*h, d=dpiValue();
+  $("pixels").textContent=w.toLocaleString()+" × "+h.toLocaleString();
+  $("mp").textContent=(px/1e6).toFixed(2)+" MP";
+  $("print").textContent=(w/d).toFixed(2)+" × "+(h/d).toFixed(2)+" inch";
+  $("mem").textContent=bytes(px*4);
+}
+$("format").onchange=()=>{
+  if($("format").value==="jpeg") $("transparent").checked=false;
+};
+
+/* -----------------------------
+   Processing UI
+----------------------------- */
+function openProcess(){
+  processing=true;cancelled=false;
+  $("processing").classList.add("show");
+  $("barFill").style.width="0%";$("percent").textContent="0%";
+  $("processTitle").textContent="✨ 高画質画像を生成しています…";
+  $("badge").textContent="処理中";$("processStatus").textContent="SVGを解析しています";
+  speedSamples=[];callbackTimes=[];lastSpeedTime=performance.now();lastSpeedPixels=0;
+  drawChart();
+  ["s1","s2","s3","s4"].forEach((id,i)=>{$(id).className=i===0?"active":""});
+}
+function closeProcess(){
+  processing=false;$("processing").classList.remove("show");
+}
+function progress(p,text,stage){
+  const x=clamp(p,0,100);
+  $("barFill").style.width=x.toFixed(1)+"%";$("percent").textContent=Math.round(x)+"%";
+  $("processStatus").textContent=text;
+  for(let i=1;i<=4;i++){
+    const el=$("s"+i);el.className=i<stage?"done":i===stage?"active":"";
+  }
+}
+function sampleSpeed(pixelDelta){
+  const now=performance.now(), dt=(now-lastSpeedTime)/1000;
+  if(dt>=.12){
+    const mps=(pixelDelta/1e6)/dt;
+    speedSamples.push(mps);if(speedSamples.length>80)speedSamples.shift();
+    $("speed").textContent=mps.toFixed(1)+" MP/s";
+    lastSpeedTime=now;lastSpeedPixels=0;
+    callbackTimes.push(now);callbackTimes=callbackTimes.filter(t=>now-t<1000);
+    $("callbacks").textContent=callbackTimes.length+" fps";
+    drawChart();
+  }
+}
+$("cancel").onclick=()=>{cancelled=true;};
+
+/* -----------------------------
+   Chart
+----------------------------- */
+function drawChart(){
+  const c=$("speedCanvas"),r=c.getBoundingClientRect(),d=devicePixelRatio||1;
+  c.width=Math.max(1,Math.floor(r.width*d));c.height=Math.max(1,Math.floor(r.height*d));
+  const ctx=c.getContext("2d");ctx.setTransform(d,0,0,d,0,0);
+  const w=r.width,h=r.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle="#dfe3e7";ctx.lineWidth=1;
+  for(let i=0;i<5;i++){let y=20+i*(h-45)/4;ctx.beginPath();ctx.moveTo(55,y);ctx.lineTo(w,y);ctx.stroke();}
+  if(!speedSamples.length)return;
+  const max=Math.max(1,...speedSamples)*1.15, left=55, top=20, bottom=h-25, usableW=w-left-8, usableH=bottom-top;
+  ctx.beginPath();
+  speedSamples.forEach((v,i)=>{
+    const x=left+(i/Math.max(1,speedSamples.length-1))*usableW;
+    const y=bottom-(v/max)*usableH;
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle="#2d9cdb";ctx.lineWidth=2;ctx.stroke();
+}
+
+/* -----------------------------
+   Robust SVG rasterization
+----------------------------- */
+async function svgToImage(text){
+  const blob=new Blob([text],{type:"image/svg+xml;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  try{
+    if("createImageBitmap" in window){
+      try{
+        const b=await fetch(url).then(r=>r.blob());
+        const bmp=await createImageBitmap(b);
+        return {image:bmp,bitmap:true,url};
+      }catch(_){}
+    }
+    const img=new Image();
+    img.decoding="async";
+    img.src=url;
+    await img.decode();
+    return {image:img,bitmap:false,url};
+  }catch(e){
+    URL.revokeObjectURL(url);throw e;
+  }
+}
+function canvasLimit(){
+  const c=document.createElement("canvas");
+  /* Conservative limits; avoids many browser-specific allocation failures. */
+  const maxArea=268000000;
+  return {maxSide:32767,maxArea};
+}
+
+/* Tiled drawing: reduces transient allocation pressure while keeping final canvas manageable. */
+async function renderTiled(image,w,h){
+  const lim=canvasLimit();
+  if(w>lim.maxSide || h>lim.maxSide || w*h>lim.maxArea){
+    throw new Error("OUTPUT_LIMIT");
+  }
+
+  const c=$("outCanvas");
+  c.width=w;c.height=h;
+  const ctx=c.getContext("2d",{alpha:true,willReadFrequently:false});
+  if(!ctx)throw new Error("Canvas context unavailable");
+  ctx.imageSmoothingEnabled=$("smooth").checked;
+  ctx.imageSmoothingQuality="high";
+
+  const bg=$("bg").value;
+  const useTransparent=$("transparent").checked && $("format").value!=="jpeg";
+  if(!useTransparent){ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);}
+
+  /* Tile only for very large images to keep each draw bounded. */
+  const tile=2048;
+  const total=w*h;
+  let done=0;
+
+  for(let y=0;y<h;y+=tile){
+    if(cancelled)throw new Error("CANCELLED");
+    const th=Math.min(tile,h-y);
+    for(let x=0;x<w;x+=tile){
+      if(cancelled)throw new Error("CANCELLED");
+      const tw=Math.min(tile,w-x);
+      const sx=(x/w)*image.width, sy=(y/h)*image.height;
+      const sw=(tw/w)*image.width, sh=(th/h)*image.height;
+      ctx.drawImage(image,sx,sy,sw,sh,x,y,tw,th);
+      done+=tw*th;
+      const p=20+(done/total)*58;
+      progress(p,"SVGを高解像度へラスタライズ中",2);
+      sampleSpeed(tw*th);
+      if((done%(tile*tile))<tile)await nextFrame();
+    }
+  }
+  return c;
+}
+
+/* -----------------------------
+   Encoding
+----------------------------- */
+function canvasToBlob(canvas,mime,quality){
+  return new Promise((resolve,reject)=>{
+    canvas.toBlob(b=>b?resolve(b):reject(new Error("ENCODE_FAILED")),mime,quality);
+  });
+}
+
+/* -----------------------------
+   Main conversion
+----------------------------- */
+$("convert").onclick=async()=>{
+  if(processing||!svgText)return;
+  const w=Math.max(1,parseInt($("w").value)||1),h=Math.max(1,parseInt($("h").value)||1);
+  if(w>50000||h>50000){setStatus("幅・高さは最大50000pxです。",true);return;}
+  const px=w*h;
+  if(px>268000000){
+    setStatus("このサイズは安全なCanvas上限を超えています。幅・高さを小さくしてください。",true);return;
+  }
+  if(px>100000000 && !confirm("非常に大きな画像です。メモリを大量に使用する可能性があります。続行しますか？"))return;
+
+  openProcess();
+  $("convert").disabled=true;$("download").disabled=true;blobOut=null;
+  let imageObj=null;
+  try{
+    progress(3,"SVGを解析しています",1);
+    await nextFrame();
+    imageObj=await svgToImage(svgText);
+    if(cancelled)throw new Error("CANCELLED");
+    progress(12,"SVG画像を準備しています",1);
+    await nextFrame();
+
+    const image=imageObj.image;
+    if(!(image.width>0&&image.height>0))throw new Error("IMAGE_SIZE");
+
+    await renderTiled(image,w,h);
+    if(cancelled)throw new Error("CANCELLED");
+
+    progress(80,"画像データをエンコードしています",3);
+    await nextFrame();
+
+    const fmt=$("format").value;
+    const mime=fmt==="jpeg"?"image/jpeg":fmt==="webp"?"image/webp":"image/png";
+    const q=Number($("quality").value)/100;
+    blobOut=await canvasToBlob($("outCanvas"),mime,q);
+
+    progress(94,"保存用データを確認しています",4);
+    $("speed").textContent=(w*h/1e6).toFixed(1)+" MP";
+    await nextFrame();
+    progress(100,"変換が完了しました",4);
+    $("badge").textContent="完了";
+    $("processTitle").textContent="✨ 高画質画像が完成しました！";
+    $("processStatus").textContent="最終サイズ: "+bytes(blobOut.size);
+    $("download").disabled=false;
+    await new Promise(r=>setTimeout(r,700));
+    closeProcess();
+    setStatus(`変換完了：${w.toLocaleString()} × ${h.toLocaleString()} px / ${bytes(blobOut.size)}`,false);
+  }catch(e){
+    closeProcess();
+    if(e.message==="CANCELLED"){
+      setStatus("変換をキャンセルしました。",true);
+    }else if(e.message==="OUTPUT_LIMIT"){
+      setStatus("このブラウザで安全に処理できる最大Canvasサイズを超えています。解像度を下げてください。",true);
+    }else{
+      console.error(e);
+      setStatus("変換に失敗しました。SVGの外部画像・特殊機能・解像度を確認してください。",true);
+    }
+  }finally{
+    if(imageObj?.url)URL.revokeObjectURL(imageObj.url);
+    if(imageObj?.bitmap && imageObj.image.close)imageObj.image.close();
+    $("convert").disabled=false;
+  }
+};
+
+/* -----------------------------
+   Download
+----------------------------- */
+$("download").onclick=()=>{
+  if(!blobOut)return;
+  let base=($("outName").value||"converted").trim().replace(/[\\/:*?"<>|]/g,"_");
+  if(!base)base="converted";
+  const ext=$("format").value==="jpeg"?"jpg":$("format").value;
+  const w=parseInt($("w").value),h=parseInt($("h").value);
+  const a=document.createElement("a"),u=URL.createObjectURL(blobOut);
+  a.href=u;a.download=`${base}_${w}x${h}.${ext}`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),1000);
+};
+
+/* -----------------------------
+   Reset
+----------------------------- */
+$("reset").onclick=()=>{
+  svgText="";sourceFile=null;blobOut=null;
+  if(sourceURL){URL.revokeObjectURL(sourceURL);sourceURL=null;}
+  $("main").classList.add("hidden");$("download").disabled=true;$("file").value="";
+  const c=$("outCanvas");c.width=1;c.height=1;
+  setStatus("リセットしました。",false);
+};
+window.addEventListener("resize",()=>{if($("processing").classList.contains("show"))drawChart();});
+updateInfo();
+</script>
+</body>
+</html>
