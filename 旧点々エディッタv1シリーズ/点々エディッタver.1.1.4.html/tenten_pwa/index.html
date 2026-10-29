@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="点々エディッタ">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#10b981">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+    <title>点々エディッタ ver.14</title>
+    <style>
+        :root {
+            --bg: #111827;
+            --panel: #1f2937;
+            --accent: #10b981;
+            --text: #f9fafb;
+            --ctrl: #374151;
+            --border: #4b5563;
+            --sub: #9ca3af;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bot: env(safe-area-inset-bottom, 0px);
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: calc(var(--safe-top) + 16px) 16px calc(var(--safe-bot) + 16px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        h1 { font-size: 1.5rem; margin: 0 0 2px; color: var(--accent); }
+        .subtitle { font-size: 0.8rem; color: var(--sub); margin: 0 0 16px; }
+
+        #pwa-banner {
+            display: none;
+            width: 100%; max-width: 1100px;
+            background: linear-gradient(135deg, #065f46, #1e3a5f);
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            align-items: center;
+            gap: 12px;
+        }
+        #pwa-banner.show { display: flex; }
+        #pwa-banner span { flex: 1; font-size: 0.85rem; }
+        #pwa-banner button { flex: none; min-width: unset; padding: 8px 14px; font-size: 0.8rem; background: var(--accent); }
+        #pwa-dismiss { background: transparent !important; color: var(--sub) !important; border: 1px solid var(--border) !important; }
+
+        .container {
+            width: 100%; max-width: 1100px;
+            background: var(--panel);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .tabs {
+            display: flex; gap: 4px; margin-bottom: 16px;
+            border-bottom: 2px solid var(--border); padding-bottom: 4px;
+        }
+        .tab-btn {
+            padding: 8px 16px; border: none; border-radius: 8px 8px 0 0;
+            background: transparent; color: var(--sub);
+            cursor: pointer; font-weight: bold; font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .tab-btn.active { background: var(--accent); color: #fff; }
+        .tab-btn:hover:not(.active) { background: var(--ctrl); color: var(--text); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 13px;
+            background: var(--ctrl);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 4px;
+        }
+        .cg { display: flex; flex-direction: column; font-size: 0.82rem; font-weight: bold; }
+        .cg label { margin-bottom: 5px; color: #e5e7eb; }
+        .cg input[type="text"], .cg input[type="range"],
+        .cg input[type="number"], .cg select {
+            width: 100%; padding: 7px; border: 1px solid var(--border);
+            border-radius: 6px; background: var(--panel); color: #fff; font-size: 0.82rem;
+        }
+        .cg input[type="range"] { padding: 0; }
+        .row2 { display: flex; gap: 7px; align-items: center; }
+        .row2 input[type="range"] { flex: 1; }
+        .row2 input[type="number"] { width: 70px !important; text-align: center; }
+        .sub { margin-left:8px; border-left:2px solid var(--border); padding-left:8px; margin-top:4px; }
+        .sub label { color: var(--sub) !important; margin-bottom:3px; display:block; font-size:0.78rem; }
+        .full { grid-column: 1 / -1; }
+        .btn-row {
+            display: flex; flex-wrap: wrap; gap: 9px;
+            grid-column: 1 / -1; margin-top: 6px;
+        }
+        button {
+            background: #2563eb; color: #fff; border: none;
+            padding: 13px 12px; border-radius: 8px; cursor: pointer;
+            font-weight: bold; font-size: 0.85rem; transition: all 0.2s;
+            flex: 1; min-width: 130px;
+        }
+        button:hover { background: #1d4ed8; transform: translateY(-1px); }
+        button:disabled { background: var(--border); color: var(--sub); cursor: not-allowed; transform: none; }
+        #saveBtn { background: #ea580c; } #saveBtn:hover { background: #c2410c; }
+        #copyBtn { background: var(--accent); } #copyBtn:hover { background: #059669; }
+
+        .hq-panel {
+            background: var(--ctrl); border: 1px solid var(--border);
+            border-radius: 12px; padding: 16px; margin-bottom: 12px;
+        }
+        .hq-panel h3 { margin: 0 0 12px; font-size: 0.95rem; color: var(--accent); }
+        .hq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 12px; }
+        .hq-badge {
+            display: inline-block; font-size: 0.7rem; padding: 2px 6px;
+            border-radius: 4px; background: #7c3aed; color: #fff; margin-left: 4px; vertical-align: middle;
+        }
+        .progress-bar-wrap {
+            width: 100%; background: var(--border); border-radius: 6px;
+            height: 10px; overflow: hidden; margin-top: 8px; display: none;
+        }
+        .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.2s; border-radius: 6px; }
+        #hq-status { font-size: 0.82rem; color: var(--accent); margin-top: 6px; font-weight: bold; }
+
+        #canvas-wrapper {
+            width: 100%; display: flex; justify-content: center; align-items: center;
+            border-radius: 12px; overflow: hidden; padding: 12px;
+            min-height: 360px; transition: background 0.1s;
+        }
+        .checker {
+            background-color: #090d16;
+            background-image:
+                linear-gradient(45deg,#151d30 25%,transparent 25%),
+                linear-gradient(-45deg,#151d30 25%,transparent 25%),
+                linear-gradient(45deg,transparent 75%,#151d30 75%),
+                linear-gradient(-45deg,transparent 75%,#151d30 75%);
+            background-size: 20px 20px;
+            background-position: 0 0,0 10px,10px -10px,-10px 0;
+        }
+        canvas {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+            background: transparent;
+            max-width: 100%; max-height: 70vh;
+            width: auto !important; height: auto !important;
+        }
+        #status { text-align:center; font-size:0.88rem; margin-top:10px; color:var(--accent); font-weight:bold; }
+
+        #output-wrap { margin-top:16px; display:none; }
+        #output-wrap textarea {
+            width:100%; height:160px; padding:10px; font-family:monospace;
+            font-size:0.78rem; border:1px solid var(--border); border-radius:8px;
+            resize:vertical; background:#111827; color:var(--accent);
+        }
+
+        .mask-row-btns { display:flex; gap:4px; margin-top:5px; flex-wrap:wrap; }
+        .mask-row-btns button {
+            flex:1; min-width:unset; padding:6px 4px;
+            font-size:0.75rem; background:var(--ctrl); color:var(--text);
+        }
+        .mask-row-btns button:hover { background:var(--border); transform:none; }
+        .rot-display { text-align:center; font-size:0.78rem; color:var(--accent); margin-top:2px; }
+        .g2 { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:5px; }
+        .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; margin-top:5px; }
+        .g2 label,.g3 label { color:var(--sub); font-size:0.76rem; display:block; margin-bottom:2px; }
+        .bg-row { display:flex; gap:6px; align-items:center; }
+        .bg-row input[type="color"] { padding:0; width:38px; height:32px; border:1px solid var(--border); border-radius:6px; background:none; cursor:pointer; }
+
+        #densityLabel { font-size:0.74rem; margin-top:3px; text-align:right; }
+
+        @media (max-width: 500px) {
+            body { padding: calc(var(--safe-top) + 10px) 10px calc(var(--safe-bot) + 10px); }
+            .container { padding: 14px; border-radius: 12px; }
+            h1 { font-size: 1.2rem; }
+            .controls { grid-template-columns: 1fr; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>点々エディッタ <span style="font-size:0.8rem;color:var(--sub)">ver.14</span></h1>
+
+<!-- PWA install banner -->
+<div id="pwa-banner">
+    <span>📲 <strong>ホーム画面に追加</strong>するとアプリとして使えます（iPhone/iPad/Mac/Windows対応）</span>
+    <button id="pwa-install-btn">追加する</button>
+    <button id="pwa-dismiss" onclick="document.getElementById('pwa-banner').classList.remove('show');localStorage.setItem('pwa-dismissed','1')">✕</button>
+</div>
+
+<div class="container">
+
+    <!-- タブ -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('main',this)">🎨 ドットアート生成</button>
+        <button class="tab-btn" onclick="switchTab('hq',this)">✨ 高画質化</button>
+        <button class="tab-btn" onclick="switchTab('info',this)">📖 使い方</button>
+    </div>
+
+    <!-- ════ タブ1: メイン ════ -->
+    <div class="tab-panel active" id="tab-main">
+        <div class="controls">
+            <div class="cg">
+                <label>① 画像を選択 <span style="font-size:0.72rem;color:var(--sub)">（貼り付けも可）</span></label>
+                <input type="file" id="imageLoader" accept="image/*">
+            </div>
+            <div class="cg">
+                <label>② 描画スタイル</label>
+                <select id="drawStyle">
+                    <option value="dot" selected>標準：丸いドット</option>
+                    <option value="text">特殊：文字（AA風）</option>
+                    <option value="icon">超特殊：カスタムアイコン</option>
+                </select>
+            </div>
+            <div class="cg" id="charInputGroup" style="opacity:0.5">
+                <label>└ 描画用文字（ループ）</label>
+                <input type="text" id="charText" value="@A/1#*+">
+            </div>
+            <div class="cg" id="iconInputGroup" style="display:none">
+                <label>└ アイコン画像（複数可）</label>
+                <input type="file" id="iconLoader" accept="image/*" multiple>
+                <span id="iconCountLabel" style="font-size:0.72rem;color:var(--sub);margin-top:3px">未選択</span>
+            </div>
+            <div class="cg">
+                <label>③ 抽出ターゲット</label>
+                <select id="targetMode">
+                    <option value="all">画像全体</option>
+                    <option value="edge">通常輪郭検知</option>
+                    <option value="ultraEdge" selected>超輪郭検知</option>
+                </select>
+            </div>
+            <div class="cg">
+                <label>④ 描画カラー</label>
+                <select id="colorMode">
+                    <option value="outlineColor" selected>輪郭カラー</option>
+                    <option value="hyperColor">超カラー再現</option>
+                    <option value="color">通常カラー</option>
+                    <option value="monoAdjustment">白黒モード</option>
+                    <option value="black">単色モード</option>
+                </select>
+                <div id="monoConfigArea" class="sub" style="display:none">
+                    <label>白黒コントラスト調整</label>
+                    <div class="row2">
+                        <input type="range" id="monoContrast" min="-100" max="100" value="0" step="5">
+                        <input type="number" id="monoContrastNum" min="-100" max="100" value="0" step="5" style="width:55px!important">
+                    </div>
+                </div>
+            </div>
+            <div class="cg">
+                <label>⑤ 点の間隔 (px)</label>
+                <div class="row2">
+                    <input type="range" id="stepRange" min="0.1" max="12" value="1.2" step="0.1">
+                    <input type="number" id="stepNumber" min="0.1" max="12" value="1.2" step="0.1">
+                </div>
+                <span id="densityLabel" style="color:var(--accent)">間隔: 1.2px</span>
+            </div>
+            <div class="cg">
+                <label>⑥ サイズ設定</label>
+                <select id="dotSize">
+                    <option value="auto" selected>自動</option>
+                    <option value="0.1">超微小 0.1</option>
+                    <option value="0.3">極小 0.3</option>
+                    <option value="0.5">微小 0.5</option>
+                    <option value="1.0">小 1.0</option>
+                    <option value="1.8">中 1.8</option>
+                    <option value="3.0">大 3.0</option>
+                </select>
+            </div>
+            <div class="cg">
+                <label>⑦ 輪郭感度 (低=高感度)</label>
+                <div class="row2">
+                    <input type="range" id="threshold" min="0.1" max="100" value="15" step="0.1">
+                    <input type="number" id="thresholdNum" min="0.1" max="100" value="15" step="0.1" style="width:64px!important;text-align:center">
+                </div>
+            </div>
+            <div class="cg">
+                <label>⑧ 型抜き設定</label>
+                <select id="maskMode">
+                    <option value="none" selected>型抜きなし</option>
+                    <option value="char">文字の形に型抜き</option>
+                    <option value="image">画像の形に型抜き ★</option>
+                </select>
+                <!-- 文字マスク -->
+                <div id="maskCharPanel" class="sub" style="display:none;margin-top:7px">
+                    <label>型抜き文字列</label>
+                    <input type="text" id="maskChar" value="HELLO">
+                    <div class="g3">
+                        <div><label>位置X</label><input type="number" id="maskOffsetX" value="0" step="5"></div>
+                        <div><label>位置Y</label><input type="number" id="maskOffsetY" value="0" step="5"></div>
+                        <div><label>倍率%</label><input type="number" id="maskScale" value="100" min="10" max="500" step="5"></div>
+                    </div>
+                    <div style="margin-top:7px">
+                        <label>回転角度</label>
+                        <div class="row2">
+                            <input type="range" id="maskRotation" min="-180" max="180" value="0" step="1">
+                            <input type="number" id="maskRotationNum" min="-180" max="180" value="0" step="1" style="width:56px!important;text-align:center">
+                        </div>
+                        <div class="rot-display" id="rotDisplay">0°</div>
+                        <div class="mask-row-btns">
+                            <button onclick="setRot(maskRotation,maskRotationNum,rotDisplay,-90)">↺-90°</button>
+                            <button onclick="setRot(maskRotation,maskRotationNum,rotDisplay,0)">⬛0°</button>
+                            <button onclick="setRot(maskRotation,maskRotationNum,rotDisplay,90)">↻+90°</button>
+                            <button onclick="setRot(maskRotation,maskRotationNum,rotDisplay,180)">↕180°</button>
+                        </div>
+                        <div class="mask-row-btns" style="margin-top:3px">
+                            <button onclick="toggleFlip('charH')">↔ 左右</button>
+                            <button onclick="toggleFlip('charV')">↕ 上下</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- 画像マスク -->
+                <div id="maskImagePanel" class="sub" style="display:none;margin-top:7px">
+                    <label>型抜き用画像</label>
+                    <input type="file" id="maskImageLoader" accept="image/*">
+                    <span id="maskImageLabel" style="font-size:0.72rem;color:var(--sub);margin-top:3px;display:block">未選択</span>
+                    <label style="margin-top:6px">明度しきい値（明→型抜き）</label>
+                    <div class="row2">
+                        <input type="range" id="maskImageThresh" min="0" max="255" value="128">
+                        <input type="number" id="maskImageThreshNum" min="0" max="255" value="128" style="width:56px!important;text-align:center">
+                    </div>
+                    <label style="margin-top:5px">マスク</label>
+                    <select id="maskImageInvert">
+                        <option value="0">明るい部分を残す</option>
+                        <option value="1">暗い部分を残す（反転）</option>
+                    </select>
+                    <div class="g3" style="margin-top:5px">
+                        <div><label>位置X</label><input type="number" id="maskImageOffsetX" value="0" step="5"></div>
+                        <div><label>位置Y</label><input type="number" id="maskImageOffsetY" value="0" step="5"></div>
+                        <div><label>倍率%</label><input type="number" id="maskImageScale" value="100" min="10" max="500" step="5"></div>
+                    </div>
+                    <div style="margin-top:7px">
+                        <label>回転角度</label>
+                        <div class="row2">
+                            <input type="range" id="maskImgRotation" min="-180" max="180" value="0" step="1">
+                            <input type="number" id="maskImgRotationNum" min="-180" max="180" value="0" step="1" style="width:56px!important;text-align:center">
+                        </div>
+                        <div class="rot-display" id="maskImgRotDisplay">0°</div>
+                        <div class="mask-row-btns">
+                            <button onclick="setRot(maskImgRotation,maskImgRotationNum,maskImgRotDisplay,-90)">↺-90°</button>
+                            <button onclick="setRot(maskImgRotation,maskImgRotationNum,maskImgRotDisplay,0)">⬛0°</button>
+                            <button onclick="setRot(maskImgRotation,maskImgRotationNum,maskImgRotDisplay,90)">↻+90°</button>
+                            <button onclick="setRot(maskImgRotation,maskImgRotationNum,maskImgRotDisplay,180)">↕180°</button>
+                        </div>
+                        <div class="mask-row-btns" style="margin-top:3px">
+                            <button onclick="toggleFlip('imgH')">↔ 左右</button>
+                            <button onclick="toggleFlip('imgV')">↕ 上下</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="cg">
+                <label>⑨ 描画の濃さ</label>
+                <select id="drawIntensity">
+                    <option value="1" selected>標準</option>
+                    <option value="2">濃いめ</option>
+                    <option value="3">極濃</option>
+                    <option value="4">超極濃</option>
+                </select>
+            </div>
+            <div class="cg">
+                <label>⑩ コピペ最大行数（0=無制限）</label>
+                <input type="number" id="maxLines" min="0" value="15000">
+            </div>
+            <div class="cg">
+                <label>⑪ プレビュー背景</label>
+                <div class="bg-row">
+                    <select id="canvasBgMode">
+                        <option value="transparent" selected>透過（チェッカー）</option>
+                        <option value="custom">指定色</option>
+                    </select>
+                    <input type="color" id="canvasBgColor" value="#ffffff">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button id="restartBtn" disabled>🔄 再生成</button>
+                <button id="saveBtn" disabled>💾 画像保存</button>
+                <button id="copyBtn" disabled>📋 データコピー</button>
+            </div>
+        </div>
+
+        <div id="canvas-wrapper" class="checker">
+            <canvas id="imageCanvas"></canvas>
+        </div>
+        <div id="status">画像を選択してください（またはペースト）</div>
+        <div id="output-wrap">
+            <label id="outputLabel" style="font-size:0.78rem;font-weight:bold;color:var(--sub)"></label>
+            <textarea id="outputData" readonly onclick="this.select()"></textarea>
+        </div>
+    </div><!-- /tab-main -->
+
+    <!-- ════ タブ2: 高画質化 ════ -->
+    <div class="tab-panel" id="tab-hq">
+        <div class="hq-panel">
+            <h3>✨ 高画質化処理 <span class="hq-badge">NEW</span></h3>
+            <p style="font-size:0.82rem;color:var(--sub);margin:0 0 14px">生成したドットアートに後処理をかけてクオリティを上げます。</p>
+            <div class="hq-grid">
+                <!-- アップスケール -->
+                <div class="cg">
+                    <label>① アップスケール <span class="hq-badge">超解像</span></label>
+                    <select id="upscaleMode">
+                        <option value="none" selected>なし（オリジナルサイズ）</option>
+                        <option value="2x">2x（2倍に拡大）</option>
+                        <option value="4x">4x（4倍に拡大）</option>
+                        <option value="custom">カスタム倍率</option>
+                    </select>
+                    <div id="customScaleWrap" style="display:none;margin-top:5px">
+                        <div class="row2">
+                            <input type="range" id="customScale" min="1" max="8" value="3" step="0.5">
+                            <input type="number" id="customScaleNum" min="1" max="8" value="3" step="0.5" style="width:60px!important;text-align:center">
+                        </div>
+                    </div>
+                    <label style="margin-top:8px">補間アルゴリズム</label>
+                    <select id="interpMode">
+                        <option value="lanczos">Lanczos（高品質・推奨）</option>
+                        <option value="bicubic">Bicubic（滑らか）</option>
+                        <option value="bilinear">Bilinear（高速）</option>
+                        <option value="nearest">Nearest（ドット感保持）</option>
+                    </select>
+                </div>
+                <!-- シャープネス -->
+                <div class="cg">
+                    <label>② シャープネス強化</label>
+                    <select id="sharpenMode">
+                        <option value="none" selected>なし</option>
+                        <option value="mild">弱（ソフト）</option>
+                        <option value="medium">中（標準）</option>
+                        <option value="strong">強（くっきり）</option>
+                        <option value="ultra">超強（エッジ強調）</option>
+                    </select>
+                    <label style="margin-top:8px">シャープネス強度</label>
+                    <div class="row2">
+                        <input type="range" id="sharpenStrength" min="0" max="3" value="1" step="0.1">
+                        <input type="number" id="sharpenStrengthNum" min="0" max="3" value="1" step="0.1" style="width:60px!important;text-align:center">
+                    </div>
+                </div>
+                <!-- ノイズ除去 -->
+                <div class="cg">
+                    <label>③ ノイズ除去</label>
+                    <select id="denoiseMode">
+                        <option value="none" selected>なし</option>
+                        <option value="gaussian">ガウシアン（滑らか）</option>
+                        <option value="median">メディアン（斑点除去）</option>
+                        <option value="bilateral">バイラテラル（エッジ保持）</option>
+                    </select>
+                    <label style="margin-top:8px">ノイズ除去強度</label>
+                    <div class="row2">
+                        <input type="range" id="denoiseRadius" min="1" max="5" value="1" step="1">
+                        <input type="number" id="denoiseRadiusNum" min="1" max="5" value="1" step="1" style="width:60px!important;text-align:center">
+                    </div>
+                </div>
+                <!-- コントラスト・明度 -->
+                <div class="cg">
+                    <label>④ コントラスト補正</label>
+                    <div class="row2">
+                        <input type="range" id="hqContrast" min="-100" max="100" value="0" step="1">
+                        <input type="number" id="hqContrastNum" min="-100" max="100" value="0" step="1" style="width:60px!important;text-align:center">
+                    </div>
+                    <label style="margin-top:8px">明度補正</label>
+                    <div class="row2">
+                        <input type="range" id="hqBrightness" min="-100" max="100" value="0" step="1">
+                        <input type="number" id="hqBrightnessNum" min="-100" max="100" value="0" step="1" style="width:60px!important;text-align:center">
+                    </div>
+                    <label style="margin-top:8px">彩度補正</label>
+                    <div class="row2">
+                        <input type="range" id="hqSaturation" min="-100" max="100" value="0" step="1">
+                        <input type="number" id="hqSaturationNum" min="-100" max="100" value="0" step="1" style="width:60px!important;text-align:center">
+                    </div>
+                </div>
+            </div>
+            <div class="progress-bar-wrap" id="hqProgressWrap">
+                <div class="progress-bar" id="hqProgress"></div>
+            </div>
+            <div id="hq-status" style="margin-top:8px;font-size:0.82rem;color:var(--sub)">ドットアートを生成してから高画質化処理を行ってください。</div>
+            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+                <button id="hqApplyBtn" disabled style="flex:1;min-width:180px">✨ 高画質化を実行</button>
+                <button id="hqSaveBtn" disabled style="background:#ea580c;flex:1;min-width:180px">💾 高画質版を保存</button>
+                <button id="hqResetBtn" style="background:var(--ctrl);color:var(--text);flex:none;min-width:100px">↩ リセット</button>
+            </div>
+        </div>
+        <div id="hq-canvas-wrapper" class="checker" style="width:100%;display:flex;justify-content:center;align-items:center;border-radius:12px;overflow:hidden;padding:12px;min-height:320px">
+            <canvas id="hqCanvas" style="box-shadow:0 8px 24px rgba(0,0,0,0.6);max-width:100%;max-height:65vh;width:auto!important;height:auto!important"></canvas>
+        </div>
+        <div id="hq-size-info" style="text-align:center;font-size:0.78rem;color:var(--sub);margin-top:6px"></div>
+    </div><!-- /tab-hq -->
+
+    <!-- ════ タブ3: 使い方 ════ -->
+    <div class="tab-panel" id="tab-info">
+        <div style="padding:8px 0;line-height:1.8;font-size:0.88rem;color:#d1d5db">
+            <h3 style="color:var(--accent);margin-top:0">📲 アプリとしてインストールする方法</h3>
+            <div style="background:var(--ctrl);border-radius:10px;padding:14px;margin-bottom:16px">
+                <p style="margin:0 0 8px"><strong style="color:#60a5fa">iPhone / iPad (Safari)</strong></p>
+                <ol style="margin:0;padding-left:20px">
+                    <li>Safariでこのページを開く</li>
+                    <li>下部の「共有」ボタン（□↑）をタップ</li>
+                    <li>「ホーム画面に追加」を選択</li>
+                    <li>「追加」をタップ → アプリとして起動可能に！</li>
+                </ol>
+                <p style="margin:10px 0 8px"><strong style="color:#34d399">Mac (Chrome / Edge)</strong></p>
+                <ol style="margin:0;padding-left:20px">
+                    <li>アドレスバー右側のインストールアイコン（⊕）をクリック</li>
+                    <li>または メニュー → 「アプリをインストール」</li>
+                </ol>
+                <p style="margin:10px 0 8px"><strong style="color:#f59e0b">Windows (Chrome / Edge)</strong></p>
+                <ol style="margin:0;padding-left:20px">
+                    <li>アドレスバー右のインストールボタンをクリック</li>
+                    <li>「インストール」を選択</li>
+                </ol>
+            </div>
+            <h3 style="color:var(--accent)">✨ 高画質化機能の使い方</h3>
+            <div style="background:var(--ctrl);border-radius:10px;padding:14px;margin-bottom:16px">
+                <ol style="margin:0;padding-left:20px">
+                    <li>「ドットアート生成」タブで画像を生成する</li>
+                    <li>「高画質化」タブに切り替える</li>
+                    <li>アップスケール・シャープネス・ノイズ除去を設定</li>
+                    <li>「高画質化を実行」ボタンを押す</li>
+                    <li>「高画質版を保存」で書き出し</li>
+                </ol>
+                <p style="margin:10px 0 0;font-size:0.82rem;color:var(--sub)">
+                    💡 <strong>おすすめ設定：</strong>アップスケール2x ＋ Lanczos ＋ バイラテラルノイズ除去 ＋ シャープネス「中」
+                </p>
+            </div>
+            <h3 style="color:var(--accent)">🎨 基本的な使い方</h3>
+            <div style="background:var(--ctrl);border-radius:10px;padding:14px">
+                <ul style="margin:0;padding-left:20px">
+                    <li>画像はファイル選択・ドラッグ＆ドロップ・<strong>Ctrl+V貼り付け</strong>で読み込めます</li>
+                    <li>「超輪郭検知」が最もきれいに輪郭を検出します</li>
+                    <li>点の間隔を小さくするほど細密になりますが処理が重くなります</li>
+                    <li>型抜き機能で文字や画像の形に切り抜けます</li>
+                    <li>データコピーでCSV形式（X,Y,文字,R,G,B）で書き出せます</li>
+                </ul>
+            </div>
+        </div>
+    </div><!-- /tab-info -->
+
+</div><!-- /container -->
+
+<script>
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW:', e));
+}
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault(); deferredPrompt = e;
+    if (!localStorage.getItem('pwa-dismissed')) {
+        document.getElementById('pwa-banner').classList.add('show');
+    }
+});
+document.getElementById('pwa-install-btn').addEventListener('click', () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => { deferredPrompt = null; document.getElementById('pwa-banner').classList.remove('show'); });
+    } else {
+        document.getElementById('pwa-banner').classList.remove('show');
+        switchTab('info', document.querySelector('.tab-btn:nth-child(3)'));
+    }
+});
+
+function switchTab(id, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+}
+
+const canvas = document.getElementById('imageCanvas');
+const ctx = canvas.getContext('2d');
+const hqCanvas = document.getElementById('hqCanvas');
+const hqCtx = hqCanvas.getContext('2d');
+
+const $ = id => document.getElementById(id);
+
+let animId, currentImg = null, allPoints = [], loadedIcons = [], maskImg = null;
+let flipState = { charH: false, charV: false, imgH: false, imgV: false };
+
+function toggleFlip(key) { flipState[key] = !flipState[key]; }
+
+function setRot(slider, numInput, display, deg) {
+    slider.value = deg; numInput.value = deg; display.innerText = deg + '°';
+}
+
+function syncPair(slider, num, min, max, displayEl) {
+    slider.addEventListener('input', e => {
+        num.value = e.target.value;
+        if (displayEl) displayEl.innerText = e.target.value + '°';
+    });
+    num.addEventListener('input', e => {
+        let v = parseFloat(e.target.value); if (isNaN(v)) return;
+        v = Math.min(max, Math.max(min, v)); slider.value = v;
+        if (displayEl) displayEl.innerText = v + '°';
+    });
+}
+
+syncPair($('stepRange'), $('stepNumber'), 0.1, 12, null);
+syncPair($('threshold'), $('thresholdNum'), 0.1, 100, null);
+syncPair($('monoContrast'), $('monoContrastNum'), -100, 100, null);
+syncPair($('maskRotation'), $('maskRotationNum'), -180, 180, $('rotDisplay'));
+syncPair($('maskImgRotation'), $('maskImgRotationNum'), -180, 180, $('maskImgRotDisplay'));
+syncPair($('maskImageThresh'), $('maskImageThreshNum'), 0, 255, null);
+syncPair($('customScale'), $('customScaleNum'), 1, 8, null);
+syncPair($('sharpenStrength'), $('sharpenStrengthNum'), 0, 3, null);
+syncPair($('denoiseRadius'), $('denoiseRadiusNum'), 1, 5, null);
+syncPair($('hqContrast'), $('hqContrastNum'), -100, 100, null);
+syncPair($('hqBrightness'), $('hqBrightnessNum'), -100, 100, null);
+syncPair($('hqSaturation'), $('hqSaturationNum'), -100, 100, null);
+
+$('stepRange').addEventListener('input', e => updateDensityLabel(parseFloat(e.target.value)));
+$('stepNumber').addEventListener('input', e => updateDensityLabel(parseFloat(e.target.value)));
+
+function updateDensityLabel(val) {
+    const el = $('densityLabel');
+    if      (val <= 0.4) { el.innerText = `間隔: ${val}px【★★★ハイパーターボ】`; el.style.color = '#ef4444'; }
+    else if (val <= 0.5) { el.innerText = `間隔: ${val}px【★★スーパーターボ】`; el.style.color = '#ec4899'; }
+    else if (val <= 1)   { el.innerText = `間隔: ${val}px【★ターボ】`;           el.style.color = '#10b981'; }
+    else                 { el.innerText = `間隔: ${val}px`;                        el.style.color = '#9ca3af'; }
+}
+
+$('drawStyle').addEventListener('change', () => {
+    const v = $('drawStyle').value;
+    $('charInputGroup').style.display = (v === 'icon') ? 'none' : 'flex';
+    $('charInputGroup').style.opacity = (v === 'text') ? '1' : '0.5';
+    $('iconInputGroup').style.display = (v === 'icon') ? 'flex' : 'none';
+});
+$('iconLoader').addEventListener('change', e => {
+    loadedIcons = [];
+    const files = e.target.files; if (!files.length) { $('iconCountLabel').innerText = '未選択'; return; }
+    let loaded = 0;
+    for (const file of files) {
+        const r = new FileReader();
+        r.onload = ev => { const img = new Image(); img.onload = () => { loadedIcons.push(img); if (++loaded === files.length) $('iconCountLabel').innerText = `完了: ${loadedIcons.length}個`; }; img.src = ev.target.result; };
+        r.readAsDataURL(file);
+    }
+});
+
+$('maskMode').addEventListener('change', () => {
+    const v = $('maskMode').value;
+    $('maskCharPanel').style.display  = (v === 'char')  ? 'block' : 'none';
+    $('maskImagePanel').style.display = (v === 'image') ? 'block' : 'none';
+});
+
+$('maskImageLoader').addEventListener('change', e => {
+    const file = e.target.files[0]; if (!file) { maskImg = null; return; }
+    const r = new FileReader();
+    r.onload = ev => { const img = new Image(); img.onload = () => { maskImg = img; $('maskImageLabel').innerText = `完了: ${img.width}×${img.height}px`; }; img.src = ev.target.result; };
+    r.readAsDataURL(file);
+});
+
+$('colorMode').addEventListener('change', () => {
+    $('monoConfigArea').style.display = ($('colorMode').value === 'monoAdjustment') ? 'block' : 'none';
+});
+
+$('canvasBgMode').addEventListener('change', updateBg);
+$('canvasBgColor').addEventListener('input', updateBg);
+function updateBg() {
+    const cw = $('canvas-wrapper');
+    if ($('canvasBgMode').value === 'transparent') {
+        cw.classList.add('checker'); cw.style.backgroundColor = ''; cw.style.backgroundImage = '';
+    } else {
+        cw.classList.remove('checker'); cw.style.backgroundImage = 'none'; cw.style.backgroundColor = $('canvasBgColor').value;
+    }
+}
+
+$('upscaleMode').addEventListener('change', () => {
+    $('customScaleWrap').style.display = ($('upscaleMode').value === 'custom') ? 'block' : 'none';
+});
+
+$('imageLoader').addEventListener('change', handleImage);
+$('restartBtn').addEventListener('click', () => { if (currentImg) processImage(currentImg); });
+$('saveBtn').addEventListener('click', saveArt);
+$('copyBtn').addEventListener('click', copyData);
+
+function handleImage(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const r = new FileReader();
+    r.onload = ev => loadImageSrc(ev.target.result);
+    r.readAsDataURL(file);
+}
+function loadImageSrc(src) {
+    const img = new Image();
+    img.onload = () => { currentImg = img; $('restartBtn').disabled = false; processImage(img); };
+    img.src = src;
+}
+document.addEventListener('paste', e => {
+    for (const item of (e.clipboardData?.items || [])) {
+        if (item.type.startsWith('image/')) {
+            const r = new FileReader();
+            r.onload = ev => loadImageSrc(ev.target.result);
+            r.readAsDataURL(item.getAsFile());
+            $('status').innerText = "クリップボード画像を読み込みました";
+            e.preventDefault(); break;
+        }
+    }
+});
+
+function processImage(img) {
+    cancelAnimationFrame(animId);
+    $('copyBtn').disabled = true; $('saveBtn').disabled = true;
+    $('output-wrap').style.display = 'none';
+    $('status').innerText = "展開中...";
+    $('hqApplyBtn').disabled = true; $('hqSaveBtn').disabled = true;
+
+    const maxDim = 1000;
+    let scale = (img.width > maxDim || img.height > maxDim)
+        ? (img.width > img.height ? maxDim / img.width : maxDim / img.height) : 1;
+
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+
+    let step = parseFloat($('stepNumber').value) || 1.0;
+    const est = (canvas.width / step) * (canvas.height / step);
+    if (est > 3000000) {
+        step = Math.ceil(Math.sqrt((canvas.width * canvas.height) / 3000000) * 10) / 10;
+        $('stepNumber').value = step; $('stepRange').value = step; updateDensityLabel(step);
+        alert(`フリーズ防止: 間隔を ${step}px に自動設定しました。`);
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    let maskData = null;
+    const mMode = $('maskMode').value;
+    if (mMode === 'char') {
+        maskData = buildCharMask(canvas.width, canvas.height,
+            $('maskChar').value || 'HELLO',
+            parseFloat($('maskOffsetX').value) || 0,
+            parseFloat($('maskOffsetY').value) || 0,
+            (parseFloat($('maskScale').value) || 100) / 100,
+            parseFloat($('maskRotation').value) || 0,
+            flipState.charH, flipState.charV);
+    } else if (mMode === 'image' && maskImg) {
+        maskData = buildImageMask(canvas.width, canvas.height, maskImg,
+            parseFloat($('maskImageOffsetX').value) || 0,
+            parseFloat($('maskImageOffsetY').value) || 0,
+            (parseFloat($('maskImageScale').value) || 100) / 100,
+            parseFloat($('maskImgRotation').value) || 0,
+            flipState.imgH, flipState.imgV,
+            parseInt($('maskImageThresh').value) || 128,
+            parseInt($('maskImageInvert').value) || 0);
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    allPoints = extractPoints(imgData, maskData, step);
+    const draw = [...allPoints]; shuffleArray(draw);
+    $('status').innerText = `解析完了: ${allPoints.length} 個 → プロット中...`;
+    animatePoints(draw, step);
+}
+
+function buildCharMask(w, h, text, ox, oy, sc, deg, flipH, flipV) {
+    const off = Object.assign(document.createElement('canvas'), {width:w, height:h});
+    const oc = off.getContext('2d');
+    let fs = Math.min(w, h) * 0.9;
+    oc.font = `bold ${fs}px sans-serif`;
+    while (oc.measureText(text).width > w * 0.95 && fs > 10) { fs -= 5; oc.font = `bold ${fs}px sans-serif`; }
+    fs *= sc;
+    oc.save();
+    oc.translate(w/2 + ox, h/2 + oy);
+    oc.rotate(deg * Math.PI / 180);
+    oc.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+    oc.font = `bold ${fs}px sans-serif`;
+    oc.textAlign = 'center'; oc.textBaseline = 'middle';
+    oc.fillStyle = '#fff'; oc.fillText(text, 0, 0);
+    oc.restore();
+    return oc.getImageData(0, 0, w, h).data;
+}
+
+function buildImageMask(w, h, src, ox, oy, sc, deg, flipH, flipV, thresh, invert) {
+    const off = Object.assign(document.createElement('canvas'), {width:w, height:h});
+    const oc = off.getContext('2d');
+    const dw = src.width * sc, dh = src.height * sc;
+    oc.save();
+    oc.translate(w/2 + ox, h/2 + oy);
+    oc.rotate(deg * Math.PI / 180);
+    oc.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+    oc.drawImage(src, -dw/2, -dh/2, dw, dh);
+    oc.restore();
+    const pix = oc.getImageData(0, 0, w, h).data;
+    const mask = new Uint8ClampedArray(w * h * 4);
+    for (let i = 0; i < pix.length; i += 4) {
+        const lum = 0.2126*pix[i] + 0.7152*pix[i+1] + 0.0722*pix[i+2];
+        let inside = pix[i+3] > 0 && lum >= thresh;
+        if (invert) inside = !inside;
+        const v = inside ? 255 : 0;
+        mask[i] = mask[i+1] = mask[i+2] = v; mask[i+3] = 255;
+    }
+    return mask;
+}
+
+function extractPoints(imgData, maskData, step) {
+    const {width:w, height:h, data:d} = imgData;
+    const points = [];
+    const targetMode = $('targetMode').value;
+    const thresh = parseFloat($('thresholdNum').value) || 0.1;
+    const style = $('drawStyle').value;
+    const charList = $('charText').value || '@';
+    const colorMode = $('colorMode').value;
+    const cf = (parseInt($('monoContrast').value) + 100) / 100;
+
+    let erR, erG, erB;
+    if (colorMode === 'hyperColor') { erR = new Float32Array(w*h); erG = new Float32Array(w*h); erB = new Float32Array(w*h); }
+
+    function getLum(kx, ky) {
+        if (kx<0||kx>=w||ky<0||ky>=h) return 255;
+        const i=(ky*w+kx)*4; if(d[i+3]===0) return 255;
+        return 0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2];
+    }
+
+    let cnt = 0;
+    for (let y = 0; y < h; y += step) {
+        for (let x = 0; x < w; x += step) {
+            const ix = Math.floor(x), iy = Math.floor(y);
+            if (ix >= w || iy >= h) continue;
+            if (maskData) { const mi=(iy*w+ix)*4; if(mi>=maskData.length||maskData[mi]<128) continue; }
+            const i=(iy*w+ix)*4;
+            if (d[i+3]===0) continue;
+            if (d[i]>=254&&d[i+1]>=254&&d[i+2]>=254) continue;
+
+            const r=d[i], g=d[i+1], b=d[i+2];
+            const cl=0.2126*r+0.7152*g+0.0722*b;
+
+            if (targetMode==='ultraEdge') {
+                const l00=getLum(ix-1,iy-1),l10=getLum(ix,iy-1),l20=getLum(ix+1,iy-1);
+                const l01=getLum(ix-1,iy),l21=getLum(ix+1,iy);
+                const l02=getLum(ix-1,iy+1),l12=getLum(ix,iy+1),l22=getLum(ix+1,iy+1);
+                const gX=(l20+2*l21+l22)-(l00+2*l01+l02);
+                const gY=(l02+2*l12+l22)-(l00+2*l10+l20);
+                const lap=Math.abs((l10+l01+l21+l12)-4*cl);
+                if(Math.sqrt(gX*gX+gY*gY)+lap*0.75<thresh) continue;
+            } else if (targetMode==='edge') {
+                if(Math.sqrt((getLum(ix+1,iy)-cl)**2+(getLum(ix,iy+1)-cl)**2)<thresh) continue;
+            }
+
+            let ch='●', ii=-1;
+            if(style==='text') ch=charList[cnt%charList.length];
+            else if(style==='icon'){ ch='[Icon]'; if(loadedIcons.length) ii=cnt%loadedIcons.length; }
+
+            let fr,fg,fb;
+            if (colorMode==='outlineColor'||colorMode==='color') { fr=r;fg=g;fb=b; }
+            else if (colorMode==='hyperColor') {
+                const bi=iy*w+ix;
+                fr=Math.min(255,Math.max(0,Math.round(r+erR[bi])));
+                fg=Math.min(255,Math.max(0,Math.round(g+erG[bi])));
+                fb=Math.min(255,Math.max(0,Math.round(b+erB[bi])));
+                const eR=r+erR[bi]-fr,eG=g+erG[bi]-fg,eB=b+erB[bi]-fb;
+                if(ix+1<w){erR[bi+1]+=eR*0.45;erG[bi+1]+=eG*0.45;erB[bi+1]+=eB*0.45;}
+                if(iy+1<h){erR[bi+w]+=eR*0.45;erG[bi+w]+=eG*0.45;erB[bi+w]+=eB*0.45;}
+            } else if (colorMode==='monoAdjustment') {
+                const gray=Math.min(255,Math.max(0,Math.round((cl-128)*cf+128)));
+                fr=fg=fb=gray;
+            } else { fr=fg=fb=17; }
+
+            points.push({x, y, char:ch, r:fr, g:fg, b:fb, iconIndex:ii});
+            cnt++;
+        }
+    }
+    return points;
+}
+
+function shuffleArray(a) { for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} }
+
+function animatePoints(points, step) {
+    let idx = 0;
+    const style = $('drawStyle').value;
+    const intensity = parseInt($('drawIntensity').value) || 1;
+    const ds = $('dotSize').value;
+    let size = ds==='auto'
+        ? (step<=0.2?(style!=='dot'?.35:.16):step<=0.5?(style!=='dot'?.7:.38):step<=1?(style!=='dot'?1.3:.72):(style!=='dot'?step*1.1:step*0.68))
+        : parseFloat(ds)*(style!=='dot'?1.4:1);
+
+    if(style==='text'){ctx.textAlign='center';ctx.textBaseline='middle';}
+    const ppf = Math.max(3000, Math.floor(points.length/40));
+
+    function drawEl(pt) {
+        ctx.fillStyle=`rgb(${pt.r},${pt.g},${pt.b})`;
+        if(style==='text'){
+            ctx.font=`${intensity>2?'900':'bold'} ${size}px monospace`;
+            ctx.fillText(pt.char,pt.x,pt.y);
+        } else if(style==='icon'&&loadedIcons.length&&pt.iconIndex!==-1){
+            const ic=loadedIcons[pt.iconIndex],is=size*1.5;
+            ctx.save();ctx.translate(pt.x,pt.y);
+            ctx.drawImage(ic,-is/2,-is/2,is,is);
+            ctx.globalCompositeOperation='source-atop';
+            ctx.fillStyle=`rgb(${pt.r},${pt.g},${pt.b})`;ctx.fillRect(-is/2,-is/2,is,is);ctx.restore();
+        } else { ctx.beginPath();ctx.arc(pt.x,pt.y,size,0,Math.PI*2);ctx.fill(); }
+    }
+
+    function draw() {
+        for(let i=0;i<ppf;i++){
+            if(idx>=points.length){
+                $('status').innerText=`総ドット数: ${allPoints.length} 個`;
+                $('copyBtn').disabled=false;$('saveBtn').disabled=false;
+                $('hqApplyBtn').disabled=false;
+                return;
+            }
+            const pt=points[idx];
+            for(let l=0;l<intensity;l++) drawEl(l===0?pt:{...pt,x:pt.x+Math.sin(l)*.08,y:pt.y+Math.cos(l)*.08});
+            idx++;
+        }
+        animId=requestAnimationFrame(draw);
+    }
+    draw();
+}
+
+function saveArt() {
+    if(!allPoints.length) return;
+    const a=document.createElement('a');
+    if($('canvasBgMode').value==='custom'){
+        const sc=Object.assign(document.createElement('canvas'),{width:canvas.width,height:canvas.height});
+        const sc2=sc.getContext('2d'); sc2.fillStyle=$('canvasBgColor').value; sc2.fillRect(0,0,sc.width,sc.height); sc2.drawImage(canvas,0,0);
+        a.href=sc.toDataURL('image/png');
+    } else { a.href=canvas.toDataURL('image/png'); }
+    a.download='tenten_art.png'; a.click();
+}
+
+function copyData() {
+    if(!allPoints.length) return;
+    const max=parseInt($('maxLines').value)||0;
+    let pts=[...allPoints];
+    if(max>0&&pts.length>max){ const s=pts.length/max; pts=Array.from({length:max},(_,i)=>pts[Math.floor(i*s)]); }
+    const text='X,Y,Char,R,G,B\n'+pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)},${p.char},${p.r},${p.g},${p.b}`).join('\n');
+    $('outputData').value=text;
+    $('outputLabel').innerText=`データ作成完了（${pts.length} 行）:`;
+    $('output-wrap').style.display='block';
+    navigator.clipboard.writeText(text).then(()=>alert(`コピー成功！ ${pts.length} 行`),()=>alert('下のエリアから手動コピーしてください'));
+}
+
+$('hqApplyBtn').addEventListener('click', runHQ);
+$('hqSaveBtn').addEventListener('click', saveHQ);
+$('hqResetBtn').addEventListener('click', resetHQ);
+
+function setHQStatus(msg, prog) {
+    $('hq-status').innerText = msg;
+    $('hqProgressWrap').style.display = prog != null ? 'block' : 'none';
+    if(prog!=null) $('hqProgress').style.width = prog + '%';
+}
+
+async function runHQ() {
+    if (!allPoints.length) { alert('先にドットアートを生成してください'); return; }
+    $('hqApplyBtn').disabled = true;
+    setHQStatus('処理開始...', 0);
+
+    const srcW = canvas.width, srcH = canvas.height;
+    const upMode = $('upscaleMode').value;
+    const customSc = parseFloat($('customScaleNum').value) || 2;
+    const scaleFactor = upMode==='2x'?2 : upMode==='4x'?4 : upMode==='custom'?customSc : 1;
+
+    const outW = Math.round(srcW * scaleFactor);
+    const outH = Math.round(srcH * scaleFactor);
+
+    setHQStatus(`アップスケール中 (${srcW}×${srcH} → ${outW}×${outH})...`, 10);
+    await sleep(10);
+
+    hqCanvas.width = outW; hqCanvas.height = outH;
+    hqCtx.clearRect(0, 0, outW, outH);
+
+    const interp = $('interpMode').value;
+    if (interp === 'nearest') {
+        hqCtx.imageSmoothingEnabled = false;
+    } else if (interp === 'bilinear') {
+        hqCtx.imageSmoothingEnabled = true; hqCtx.imageSmoothingQuality = 'low';
+    } else if (interp === 'bicubic') {
+        hqCtx.imageSmoothingEnabled = true; hqCtx.imageSmoothingQuality = 'medium';
+    } else { // lanczos
+        hqCtx.imageSmoothingEnabled = true; hqCtx.imageSmoothingQuality = 'high';
+    }
+
+    if (scaleFactor === 1) {
+        hqCtx.drawImage(canvas, 0, 0);
+    } else {
+        // 段階的スケールアップで品質向上（Lanczos近似）
+        await stepwiseUpscale(canvas, hqCanvas, hqCtx, scaleFactor);
+    }
+
+    setHQStatus('ノイズ除去中...', 35);
+    await sleep(10);
+
+    const denoiseMode = $('denoiseMode').value;
+    const denoiseR = parseInt($('denoiseRadiusNum').value) || 1;
+    if (denoiseMode !== 'none') {
+        let imgData = hqCtx.getImageData(0, 0, outW, outH);
+        imgData = applyDenoise(imgData, denoiseMode, denoiseR);
+        hqCtx.putImageData(imgData, 0, 0);
+    }
+
+    setHQStatus('シャープネス処理中...', 60);
+    await sleep(10);
+
+    const sharpenMode = $('sharpenMode').value;
+    const sharpenStr = parseFloat($('sharpenStrengthNum').value) || 1;
+    if (sharpenMode !== 'none') {
+        let imgData = hqCtx.getImageData(0, 0, outW, outH);
+        imgData = applySharpen(imgData, sharpenMode, sharpenStr);
+        hqCtx.putImageData(imgData, 0, 0);
+    }
+
+    setHQStatus('色調補正中...', 80);
+    await sleep(10);
+
+    const contrast = parseInt($('hqContrastNum').value) || 0;
+    const brightness = parseInt($('hqBrightnessNum').value) || 0;
+    const saturation = parseInt($('hqSaturationNum').value) || 0;
+    if (contrast !== 0 || brightness !== 0 || saturation !== 0) {
+        let imgData = hqCtx.getImageData(0, 0, outW, outH);
+        imgData = applyColorCorrection(imgData, contrast, brightness, saturation);
+        hqCtx.putImageData(imgData, 0, 0);
+    }
+
+    setHQStatus(`✅ 完了！ ${outW}×${outH}px`, 100);
+    $('hq-size-info').innerText = `出力サイズ: ${outW} × ${outH} px（${scaleFactor}x）`;
+    $('hqSaveBtn').disabled = false;
+    $('hqApplyBtn').disabled = false;
+
+    const hw = $('hq-canvas-wrapper');
+    if ($('canvasBgMode').value === 'custom') {
+        hw.classList.remove('checker'); hw.style.backgroundImage='none'; hw.style.backgroundColor=$('canvasBgColor').value;
+    } else { hw.classList.add('checker'); }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function stepwiseUpscale(src, dst, dstCtx, factor) {
+    let current = src;
+    let cW = src.width, cH = src.height;
+    const targetW = dst.width, targetH = dst.height;
+
+    while (cW < targetW || cH < targetH) {
+        const nextW = Math.min(cW * 2, targetW);
+        const nextH = Math.min(cH * 2, targetH);
+        const tmp = Object.assign(document.createElement('canvas'), {width: nextW, height: nextH});
+        const tCtx = tmp.getContext('2d');
+        tCtx.imageSmoothingEnabled = true; tCtx.imageSmoothingQuality = 'high';
+        tCtx.drawImage(current, 0, 0, nextW, nextH);
+        current = tmp; cW = nextW; cH = nextH;
+    }
+    dstCtx.drawImage(current, 0, 0, targetW, targetH);
+}
+
+function applyDenoise(imgData, mode, radius) {
+    const {data, width:w, height:h} = imgData;
+    const out = new Uint8ClampedArray(data);
+
+    if (mode === 'gaussian') {
+        const kernel = makeGaussianKernel(radius);
+        convolve(data, out, w, h, kernel, radius);
+    } else if (mode === 'median') {
+        applyMedian(data, out, w, h, radius);
+    } else if (mode === 'bilateral') {
+        applyBilateral(data, out, w, h, radius);
+    }
+
+    return new ImageData(out, w, h);
+}
+
+function makeGaussianKernel(r) {
+    const size = r*2+1, sigma = r/2 || 1;
+    const k = [];
+    let sum = 0;
+    for (let y=-r;y<=r;y++) for(let x=-r;x<=r;x++){
+        const v = Math.exp(-(x*x+y*y)/(2*sigma*sigma));
+        k.push(v); sum+=v;
+    }
+    return k.map(v=>v/sum);
+}
+
+function convolve(src, dst, w, h, kernel, r) {
+    const size = r*2+1;
+    for (let y=0;y<h;y++) for(let x=0;x<w;x++){
+        let sr=0,sg=0,sb=0,sa=0;
+        for(let ky=0;ky<size;ky++) for(let kx=0;kx<size;kx++){
+            const ny=Math.min(h-1,Math.max(0,y+ky-r));
+            const nx=Math.min(w-1,Math.max(0,x+kx-r));
+            const ki=(ky*size+kx), si=(ny*w+nx)*4;
+            const kv=kernel[ki];
+            sr+=src[si]*kv; sg+=src[si+1]*kv; sb+=src[si+2]*kv; sa+=src[si+3]*kv;
+        }
+        const di=(y*w+x)*4;
+        dst[di]=sr; dst[di+1]=sg; dst[di+2]=sb; dst[di+3]=sa;
+    }
+}
+
+function applyMedian(src, dst, w, h, r) {
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+        const vals=[[],[],[]];
+        for(let ky=-r;ky<=r;ky++) for(let kx=-r;kx<=r;kx++){
+            const ny=Math.min(h-1,Math.max(0,y+ky));
+            const nx=Math.min(w-1,Math.max(0,x+kx));
+            const si=(ny*w+nx)*4;
+            vals[0].push(src[si]); vals[1].push(src[si+1]); vals[2].push(src[si+2]);
+        }
+        const di=(y*w+x)*4;
+        for(let c=0;c<3;c++){ vals[c].sort((a,b)=>a-b); dst[di+c]=vals[c][Math.floor(vals[c].length/2)]; }
+        dst[di+3]=src[di+3];
+    }
+}
+
+function applyBilateral(src, dst, w, h, r) {
+    const sigmaS=r*1.5, sigmaC=30;
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+        const ci=(y*w+x)*4;
+        let wr=0,wg=0,wb=0,ws=0;
+        for(let ky=-r;ky<=r;ky++) for(let kx=-r;kx<=r;kx++){
+            const ny=Math.min(h-1,Math.max(0,y+ky));
+            const nx=Math.min(w-1,Math.max(0,x+kx));
+            const si=(ny*w+nx)*4;
+            const spatW=Math.exp(-(kx*kx+ky*ky)/(2*sigmaS*sigmaS));
+            const dr=src[si]-src[ci], dg=src[si+1]-src[ci+1], db=src[si+2]-src[ci+2];
+            const colW=Math.exp(-(dr*dr+dg*dg+db*db)/(2*sigmaC*sigmaC));
+            const w2=spatW*colW;
+            wr+=src[si]*w2; wg+=src[si+1]*w2; wb+=src[si+2]*w2; ws+=w2;
+        }
+        dst[ci]=wr/ws; dst[ci+1]=wg/ws; dst[ci+2]=wb/ws; dst[ci+3]=src[ci+3];
+    }
+}
+
+function applySharpen(imgData, mode, strength) {
+    const {data, width:w, height:h} = imgData;
+    const out = new Uint8ClampedArray(data);
+
+    const kernels = {
+        mild:   [0,-1,0,-1,5,-1,0,-1,0],
+        medium: [-1,-1,-1,-1,9,-1,-1,-1,-1],
+        strong: [0,-2,0,-2,11,-2,0,-2,0],
+        ultra:  [-1,-2,-1,-2,13,-2,-1,-2,-1],
+    };
+    const k = kernels[mode] || kernels.medium;
+    const center = k[4];
+    const adj = k.map((v,i)=>i===4 ? 1+(center-1)*strength : v*strength);
+    adj[4] = 1 + (center-1)*strength;
+
+    for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){
+        const di=(y*w+x)*4;
+        for(let c=0;c<3;c++){
+            let v=0, ki=0;
+            for(let ky=-1;ky<=1;ky++) for(let kx=-1;kx<=1;kx++){
+                const si=((y+ky)*w+(x+kx))*4;
+                v+=data[si+c]*adj[ki]; ki++;
+            }
+            out[di+c]=Math.min(255,Math.max(0,v));
+        }
+    }
+    return new ImageData(out, w, h);
+}
+
+function applyColorCorrection(imgData, contrast, brightness, saturation) {
+    const {data, width:w, height:h} = imgData;
+    const out = new Uint8ClampedArray(data);
+    const cf = (contrast + 100) / 100;
+    const bf = brightness;
+    const sf = (saturation + 100) / 100;
+
+    for(let i=0;i<data.length;i+=4){
+        if(data[i+3]===0) continue;
+        let r=data[i], g=data[i+1], b=data[i+2];
+
+        // brightness
+        r=Math.min(255,Math.max(0,r+bf));
+        g=Math.min(255,Math.max(0,g+bf));
+        b=Math.min(255,Math.max(0,b+bf));
+
+        // contrast
+        r=Math.min(255,Math.max(0,(r-128)*cf+128));
+        g=Math.min(255,Math.max(0,(g-128)*cf+128));
+        b=Math.min(255,Math.max(0,(b-128)*cf+128));
+
+        // saturation (via HSL)
+        const lum = 0.2126*r + 0.7152*g + 0.0722*b;
+        r=Math.min(255,Math.max(0,lum+(r-lum)*sf));
+        g=Math.min(255,Math.max(0,lum+(g-lum)*sf));
+        b=Math.min(255,Math.max(0,lum+(b-lum)*sf));
+
+        out[i]=r; out[i+1]=g; out[i+2]=b; out[i+3]=data[i+3];
+    }
+    return new ImageData(out, w, h);
+}
+
+function saveHQ() {
+    const a=document.createElement('a');
+    a.download='tenten_hq.png'; a.href=hqCanvas.toDataURL('image/png'); a.click();
+}
+
+function resetHQ() {
+    hqCtx.clearRect(0,0,hqCanvas.width,hqCanvas.height);
+    $('hqSaveBtn').disabled=true;
+    $('hq-size-info').innerText='';
+    setHQStatus('リセットしました。再度「高画質化を実行」を押してください。', null);
+    $('hqProgressWrap').style.display='none';
+}
+</script>
+</body>
+</html>
